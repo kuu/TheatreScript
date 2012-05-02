@@ -7,7 +7,7 @@
 
 theatre.run(function(global) {
 
-global.theatre.export('theatre.Matrix', Matrix);
+global.theatre.define('theatre.Matrix', Matrix);
 
 /**
  * An extension of an Array that allows you to use it as

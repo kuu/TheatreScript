@@ -20,6 +20,6 @@ var theatre = global.theatre;
  */
 var StageManager = theatre.createActor('StageManager');
 
-theatre.export('theatre.StageManager', StageManager);
+theatre.define('theatre.StageManager', StageManager);
 
 });

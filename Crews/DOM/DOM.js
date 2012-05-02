@@ -73,6 +73,6 @@ Object.defineProperties(DOMActor.prototype, /** @lends theatre.crews.dom.DOMActo
 	}
 });
 
-theatre.export('theatre.crews.dom.DOMActor', DOMActor);
+theatre.define('theatre.crews.dom.DOMActor', DOMActor);
 
 })(this);

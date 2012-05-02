@@ -16,7 +16,7 @@
  * @param {Object=} pSymbol The symbol.
  * @param {(Object|undefined)} pRoot The root. Defaults to the global context.
  */
-function exportSymbol(pPath, pSymbol, pRoot) {
+function defineSymbol(pPath, pSymbol, pRoot) {
 	if (!pRoot) pRoot = global;
     var tLastIndex = pPath.lastIndexOf('.'),
         tName = pPath.substring(tLastIndex + 1),
@@ -37,7 +37,7 @@ function exportSymbol(pPath, pSymbol, pRoot) {
  * @namespace
  * @name theatre
  */
-var theatre = exportSymbol('theatre', new Object(), global);
+var theatre = defineSymbol('theatre', new Object(), global);
 
 /**
  * Copy the {@see Array}'s forEach function in to NodeList.
@@ -265,13 +265,13 @@ theatre.require = function(pNames, pCallback) {
  * Export the given name as the given object
  * or as an empty Object if pObject is not given.
  * @memberOf theatre
- * @param {string} pName The name to export.
- * @param {Object=} pObject The Object to export.
- * @param {Object=global} pRoot The root Object to export to.
- * @return {Object} The exported object.
+ * @param {string} pName The name to define.
+ * @param {Object=} pObject The Object to define.
+ * @param {Object=global} pRoot The root Object to define to.
+ * @return {Object} The defineed object.
  */
-theatre.export = function(pName, pObject, pRoot) {
-    exportSymbol(pName, pObject, pRoot);
+theatre.define = function(pName, pObject, pRoot) {
+    defineSymbol(pName, pObject, pRoot);
     if (mStartupResolver !== null) {
         mStartupResolver.complete(pName);
     }
@@ -286,7 +286,7 @@ theatre.init = function() {
     mStartupResolver = null;
 };
 
-theatre.export('theatre', theatre)
-    .export('theatre.Resolver', Resolver);
+theatre.define('theatre', theatre)
+    .define('theatre.Resolver', Resolver);
 
 }(this));

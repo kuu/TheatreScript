@@ -14,8 +14,8 @@ var theatre = global.theatre,
 	Matrix = theatre.Matrix,
 	max = global.Math.max;
 
-theatre.export('theatre.Actor', Actor);
-theatre.export('theatre.createActor', createActor);
+theatre.define('theatre.Actor', Actor);
+theatre.define('theatre.createActor', createActor);
 
 /**
  * The base object for working with something on a stage.

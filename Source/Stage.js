@@ -9,7 +9,7 @@ theatre.run(function(global) {
 
 var theatre = global.theatre;
 
-theatre.export('theatre.Stage', Stage);
+theatre.define('theatre.Stage', Stage);
 
 /**
  * @private

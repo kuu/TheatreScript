@@ -170,12 +170,16 @@ Resolver.prototype = /** @lends theatre.Resolver# */ {
     complete: function(pName) {
         this._completeMap[pName] = true;
         this._completed++;
+        if (this._status === 2) {
+            this.resolve(true);
+        }
         return this;
     },
 
     /**
      * Resolve this Resolver, executing each of the
      * callbacks until done.
+     * @param {boolean} pContinuous If true, this Resolver will re-resolve itself after each time complete is executed. Otherwise if the conditions could not be met to resolve all callbacks, an Error is thrown.
      */
     resolve: function() {
         this._status = 1;
@@ -189,6 +193,7 @@ Resolver.prototype = /** @lends theatre.Resolver# */ {
         tRuns.forEach(function(pCallback) {
             pCallback(global, self);
         });
+        tRuns.length = 0;
 
         while (true) {
             var tCompletedAtStart = this._completed;
@@ -221,7 +226,11 @@ Resolver.prototype = /** @lends theatre.Resolver# */ {
             if (this._remaining === 0) {
                 break;
             } else if (tCompletedAtStart === this._completed) {
-                throw new Error('Could not resolve due to unmet dependancies.');
+                if (pContinuous === true) {
+                    break;
+                } else {
+                    throw new Error('Could not resolve due to unmet dependancies.');
+                }
             }
         }
 
@@ -237,13 +246,9 @@ var mStartupResolver = new Resolver();
  * @param {function(Object)} pCallback The callback to be called.
  */
 theatre.run = function(pCallback) {
-    if (mStartupResolver === null) {
-        pCallback(global);
-    } else {
-        mStartupResolver.run(function(pGlobal) {
-            pCallback(pGlobal);
-        });
-    }
+    mStartupResolver.run(function(pGlobal) {
+        pCallback(pGlobal);
+    });
 };
 
 /**
@@ -253,9 +258,6 @@ theatre.run = function(pCallback) {
  * @param {function(Object)} pCallback The callback to be called.
  */
 theatre.require = function(pNames, pCallback) {
-    if (mStartupResolver === null) {
-        throw new Error('TheatreScript has already started up.');
-    }
     mStartupResolver.require(pNames, function(pGlobal) {
         pCallback(pGlobal);
     });
@@ -272,9 +274,7 @@ theatre.require = function(pNames, pCallback) {
  */
 theatre.define = function(pName, pObject, pRoot) {
     defineSymbol(pName, pObject, pRoot);
-    if (mStartupResolver !== null) {
-        mStartupResolver.complete(pName);
-    }
+    mStartupResolver.complete(pName);
     return theatre;
 };
 
@@ -282,11 +282,16 @@ theatre.define = function(pName, pObject, pRoot) {
  * @private
  */
 theatre.init = function() {
-    mStartupResolver.resolve();
-    mStartupResolver = null;
+    mStartupResolver.resolve(true);
 };
 
 theatre.define('theatre', theatre)
     .define('theatre.Resolver', Resolver);
+
+global.document.addEventListener('DOMContentLoaded', function onLoad() {
+    global.document.removeEventListener('DOMContentLoaded', onLoad, false);
+    theatre.define('theatre.ready', true);
+    theatre.define('theatre.loaded', true);
+}, false);
 
 }(this));

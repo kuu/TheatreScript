@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Samples</title>
+    <meta name="viewport" content="width=device-width, user-scalable=no" />
+    <script type="text/javascript" src="../bin/theatrescript.js"></script>
+    <script type="text/javascript">
+    //![CDATA[
+
+    var mWidth = innerWidth,
+    mHeight = innerHeight,
+    mNumber = 100;
+
+    function onMove(e) {
+      this.vX = (Math.random() * mWidth * .05 | 0) - (mWidth * .025);
+      this.vY = (Math.random() * mHeight * .05 | 0) - (mHeight * .025);
+      this.stepsLeft = this.stage.timeToStep('1s');
+      this.ignore('update', onUpdate).listen('update', onUpdate);
+    }
+
+    function onUpdate() {
+      this.x += this.vX;
+      this.y += this.vY;
+
+      if (this.x <= 0) this.x = 0;
+      if (this.y <= 0) this.y = 0;
+      if (this.x >= mWidth - this.width) this.x = mWidth - this.width;
+      if (this.y >= mHeight - this.height) this.y = mHeight - this.height;
+
+      this.invalidate();
+
+      if (!(--this.stepsLeft)) {
+        this.ignore('update', onUpdate);
+      }
+    }
+
+    var DOMActor = theatre.crews.dom.DOMActor;
+    var tStage = new theatre.Stage();
+
+    tStage.stageManager.listen('enterstep', function startup() {
+        this.ignore('enterstep', startup);
+        var random = Math.random;
+        var tContainer = document.getElementById('container');
+
+        for (var i = 0; i < mNumber; i++) {
+          var tActor = this.addActor(DOMActor, {
+            data: {
+              styles: {
+                background: '#'
+                  + (random() * 15 | 0).toString(16)
+                  + (random() * 15 | 0).toString(16)
+                  + (random() * 15 | 0).toString(16),
+                position: 'absolute'
+              },
+              width: random() * mWidth * .05 | 0,
+              height: random() * mHeight * .05 | 0,
+              container: tContainer
+            }
+          });
+          tActor.listen('move', onMove);
+          tActor.x = (random() * mWidth - tActor.width) | 0;
+          tActor.y = (random() * mHeight - tActor.height) | 0;
+        }
+    });
+
+    document.addEventListener('click', function() {
+      tStage.cue('move');
+    }, false);
+
+    tStage.open();
+
+    //]]>
+    </script>
+  </head>
+  <body style="margin:0;padding:0">
+    <div id="container"></div>
+  </body>
+</html>

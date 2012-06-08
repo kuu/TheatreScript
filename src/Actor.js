@@ -428,7 +428,7 @@ use('Theatre', 'Matrix');
       }, pOptions);
 
       var tLayer = typeof pOptions.layer === 'number' ? pOptions.layer : this._layerCounter++,
-      tActors;
+          tActors;
       if (('_actors' in this) === false) {
         tActors = this._actors = new Array(tLayer + 1);
       } else {
@@ -446,6 +446,36 @@ use('Theatre', 'Matrix');
       tActors[tLayer] = tActor;
       tActor.cue('enter');
       return tActor;
+    },
+
+    /**
+     * Returns an array of children of this Actor.
+     * Note that the returned array not live.
+     * @return {Array.<theatre.Actor>} An array of Actors.
+     */
+    getActors: function() {
+      var tResult = new Array(),
+          tActors = this._actors;
+
+      if (!tActors) return new Array(0);
+
+      for (var i = 0, il = tActors.length; i < il; i++) {
+        if (tActors[i] !== void 0) {
+          tResult.push(tActors[i]);
+        }
+      }
+      return tResult;
+    },
+
+    /**
+     * Searches this Actor's children and their children recursivly until
+     * it finds the Actor given in the query or null if it could not be
+     * found.
+     * @param {string} pQuery The query to search for.
+     * @return {theatre.Actor=} The Actor or null.
+     */
+    findActors: function(pQuery) {
+      throw new Error('Not implemented');
     },
 
     /**

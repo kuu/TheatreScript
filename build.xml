@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project name="project" default="debug">
+  <!-- properties -->
+  <property name="src" value="./src" />
+  <property name="bin" value="./bin" />
+  <property name="vendor" value="./vendor" />
+  <property name="compiler" value="${vendor}/google-closure-compiler/compiler.jar" />
+  <property name="filename" value="theatrescript" />
+
+  <!-- gather source files -->
+  <target name="gather_src">
+    <exec executable="${vendor}/JSWorkBench/jsworkbench" outputproperty="srcfiles"></exec>
+  </target>
+
+  <!-- prepare build -->
+  <target name="pre_build" depends="gather_src">
+    <mkdir dir="${bin}" />
+  </target>
+
+  <!-- debug build -->
+  <target name="debug" depends="pre_build" description="build debug js">
+    <property name="outfile" value="${bin}/${filename}.debug.js" />
+    <java jar="${compiler}" fork="true" failonerror="true">
+      <arg line="--compilation_level=SIMPLE_OPTIMIZATIONS" />
+      <arg line="--js_output_file=${outfile}" />
+      <arg line="--language_in ECMASCRIPT5_STRICT" />
+      <arg line="dummy.js" />
+      <arg line="${srcfiles}" />
+    </java>
+  </target>
+
+  <!-- release build -->
+  <target name="release" depends="pre_build" description="build release js">
+    <property name="outfile" value="${bin}/${filename}.js" />
+    <java jar="${compiler}" fork="true">
+      <arg line="--compilation_level=SIMPLE_OPTIMIZATIONS" />
+      <arg line="--js_output_file=${outfile}" />
+      <arg line="--language_in ECMASCRIPT5_STRICT" />
+      <arg line="--define DEBUG=false" />
+      <arg line="dummy.js" />
+      <arg line="${srcfiles}" />
+    </java>
+  </target>
+
+  <!-- documentation -->
+  <target name="docs" depends="gather_src" description="Build documentation in to a web page">
+    <delete includeemptydirs="true">
+      <fileset dir="docs" includes="**/*" />
+    </delete>
+    <exec executable="${vendor}/JSDoc/jsdoc">
+      <arg line="-d docs/ ${srcfiles}" />
+    </exec>
+  </target>
+</project>
+<!-- vim:set expandtab ts=4 sw=4: -->

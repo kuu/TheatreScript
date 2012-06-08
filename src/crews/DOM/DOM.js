@@ -5,6 +5,8 @@
  * This code is licensed under the zlib license. See LICENSE for details.
  */
 
+use('Theatre', 'Actor');
+
 (function(global) {
 
   var theatre = global.theatre;
@@ -19,7 +21,7 @@
     tStyle.height = typeof this.height === 'string' ? this.height : this.height + 'px';
 
     if (tProtoStyles !== null) {
-      for (tKey in tProtoStyles) {
+      for (var tKey in tProtoStyles) {
         tStyle[tKey] = tProtoStyles[tKey];
       }
     }

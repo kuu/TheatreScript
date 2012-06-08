@@ -27,7 +27,7 @@
       if (this.x >= mWidth - this.width) this.x = mWidth - this.width;
       if (this.y >= mHeight - this.height) this.y = mHeight - this.height;
 
-      this.invalidate();
+      this.parent.invalidate();
 
       if (!(--this.stepsLeft)) {
         this.ignore('update', onUpdate);
@@ -35,6 +35,16 @@
     }
 
     var DOMActor = theatre.crews.dom.DOMActor;
+    var CanvasActor = theatre.crews.canvas.CanvasActor;
+    var BoxActor = theatre.createActor('BoxActor', CanvasActor, function(pData) {
+      this.color = pData.color;
+    });
+
+    BoxActor.prototype.draw = function(pContext) {
+      pContext.fillStyle = this.color;
+      pContext.fillRect(0, 0, this.width, this.height);
+    };
+
     var tStage = new theatre.Stage();
 
     tStage.stageManager.listen('enterstep', function startup() {
@@ -42,19 +52,28 @@
         var random = Math.random;
         var tContainer = document.getElementById('container');
 
+        var tContainerActor = this.addActor(DOMActor, {
+          data: {
+            container: tContainer
+          }
+        });
+
+        tContainerActor = tContainerActor.addActor(CanvasActor, {
+          data: {
+            width: mWidth,
+            height: mHeight
+          }
+        });
+
         for (var i = 0; i < mNumber; i++) {
-          var tActor = this.addActor(DOMActor, {
+          var tActor = tContainerActor.addActor(BoxActor, {
             data: {
-              styles: {
-                background: '#'
-                  + (random() * 15 | 0).toString(16)
-                  + (random() * 15 | 0).toString(16)
-                  + (random() * 15 | 0).toString(16),
-                position: 'absolute'
-              },
               width: random() * mWidth * .05 | 0,
               height: random() * mHeight * .05 | 0,
-              container: tContainer
+              color: '#'
+                  + (random() * 15 | 0).toString(16)
+                  + (random() * 15 | 0).toString(16)
+                  + (random() * 15 | 0).toString(16)
             }
           });
           tActor.listen('move', onMove);

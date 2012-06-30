@@ -10,8 +10,8 @@ use('Theatre', 'Matrix');
 (function(global) {
 
   var theatre = global.theatre,
-  Matrix = theatre.Matrix,
-  max = global.Math.max;
+      Matrix = theatre.Matrix,
+      max = global.Math.max;
 
   theatre.define('theatre.Actor', Actor);
   theatre.define('theatre.createActor', createActor);
@@ -33,12 +33,14 @@ use('Theatre', 'Matrix');
    * @param {number} pType 0 for preparation scripts and 1 for normal scripts.
    */
   function addScriptToScene(pSceneName, pStep, pScript, pType) {
-    pStep = this.stage.timeToStep(pStep);
     var tScene;
+    if (!pSceneName) pSceneName = '';
+    pStep = this.stage.timeToStep(pStep);
     if (pSceneName in this._scenes) {
       tScene = this._scenes[pSceneName].scripts[pType];
     } else {
       tScene = this._scenes[pSceneName] = {
+        name: pSceneName,
         isActing: false,
         currentStep: 0,
         previousStep: -1,
@@ -54,11 +56,11 @@ use('Theatre', 'Matrix');
     }
   }
 
-  function executeScripts(pScripts, pStep) {
+  function executeScripts(pContext, pScripts, pStep) {
     if (pScripts[pStep] !== void 0) {
       var tScriptStep = pScripts[pStep];
       for (var i = 0, il = tScriptStep.length; i < il; i++) {
-        tScriptStep[i].call(this);
+        tScriptStep[i].call(pContext);
       };
     }
   }
@@ -118,13 +120,26 @@ use('Theatre', 'Matrix');
        */
       this.isInvalidated = false;
 
+      /**
+       * @private
+       * @type {Object}
+       */
+      this._currentScene = {
+        name: '',
+        isActing: false,
+        currentStep: 0,
+        previousStep: -1,
+        shouldLoop: true,
+        scripts: [new Array(), new Array()]
+      };
 
       /**
        * @private
        * @type {Object}
        */
-      this._scenes = new Object();
-
+      this._scenes = {
+        '': this._currentScene
+      };
 
       /**
        * @private
@@ -219,9 +234,10 @@ use('Theatre', 'Matrix');
      * it is not recommended to try to access other Actors.
      * @param {number|string} pStep A step index or a time string.
      * @param {function} pScript
+     * @param {string} pSceneName The name of the scene to add to.
      * @return {theatre.Actor} This Actor.
      */
-    addPreparationScript: function(pStep, pScript) {
+    addPreparationScript: function(pStep, pScript, pSceneName) {
       addScriptToScene.call(this, pSceneName, pStep, pScript, 0);
       return this;
     },
@@ -230,9 +246,10 @@ use('Theatre', 'Matrix');
      * Adds a script to the given step.
      * @param {number|string} pStep A step index or a time string.
      * @param {function} pScript
+     * @param {string} pSceneName The name of the scene to add to.
      * @return {theatre.Actor} This Actor.
      */
-    addScript: function(pSceneName, pStep, pScript) {
+    addScript: function(pStep, pScript, pSceneName) {
       addScriptToScene.call(this, pSceneName, pStep, pScript, 1);
       return this;
     },
@@ -240,34 +257,30 @@ use('Theatre', 'Matrix');
     /**
      * Runs the scripts of the given scene and step.
      * @private
-     * @param {(string|Object)} pSceneParam The scene name or the scene itself.
      * @param {number=} pStep The step to run. Default is the current step.
      * @param {theatre.Actor} pContext The context to run the scripts from. Default context is this.
+     * @param {(string|Object)} pSceneParam The scene name or the scene itself.
      */
-    doScripts: function(pSceneParam, pStep, pContext) {
+    doScripts: function(pStep, pContext, pSceneParam) {
       var tScenes = this._scenes,
-      self = this;
-
-      function _doScripts(pScripts) {
-        if (typeof pStep !== 'number') {
-          pStep = tScene.currentStep;
-        }
-        if (pContext === void 0) {
-          pContext = this;
-        }
-        executeScripts(pContext, tScene.scripts[1], pStep);
-      }
+          tScene = this._currentScene;
 
       if (!pSceneParam) {
-        for (tName in tScenes) {
-          _doScripts(tScenes[tName].scripts[1]);
-        }
+        tScene = this._currentScene;
       } else if (typeof pSceneParam === 'string') {
         if ((pSceneParam in tScenes) === false) {
           throw new Error('Scene doesn\'t exist: ' + pSceneParam);
         }
-        _doScripts(tScenes[pSceneParam].scripts[1]);
+        tScene = tScenes[pSceneParam];
       }
+
+      if (typeof pStep !== 'number') {
+        pStep = tScene.currentStep;
+      }
+      if (pContext === void 0) {
+        pContext = this;
+      }
+      executeScripts(pContext, tScene.scripts[1], pStep);
     },
 
     /**
@@ -304,9 +317,10 @@ use('Theatre', 'Matrix');
       if ((pSceneName in this._scenes) === false) {
         throw new Error('Scene doesn\'t exist: ' + pSceneName);
       }
-      var tScene = this._scenes[pSceneName];
+      this.startActingScene(pSceneName);
+      var tScene = this._currentScene;
       pStep = this.stage.timeToStep(pStep);
-      this.step(pStep - tScene.currentStep, tScene, false);
+      this.step(pStep - tScene.currentStep, false);
       return this;
     },
 
@@ -319,22 +333,11 @@ use('Theatre', 'Matrix');
       if ((pSceneName in this._scenes) === false) {
         throw new Error('Scene doesn\'t exist: ' + pSceneName);
       }
+      if (this._currentScene.name === pSceneName) return;
+      this._currentScene.isActing = false;
       var tScene = this._scenes[pSceneName];
       tScene.isActing = true;
-      return this;
-    },
-
-    /**
-     * Stops acting a scene if the Actor already hasn't.
-     * @param {string} pSceneName The scene to start acting.
-     * @return {theatre.Actor} This Actor.
-     */
-    stopActingScene: function(pSceneName) {
-      if ((pSceneName in this._scenes) === false) {
-        throw new Error('Scene doesn\'t exist: ' + pSceneName);
-      }
-      var tScene = this._scenes[pSceneName];
-      tScene.isActing = false;
+      this._currentScene = tScene;
       return this;
     },
 
@@ -347,65 +350,48 @@ use('Theatre', 'Matrix');
     act: function() {},
 
     /**
-     * Steps through scenes scripts by the delta provided.
+     * Steps through scene scripts by the delta provided.
      * @private
      * @param {number} pDelta
-     * @param {(string|Object)} pSceneParam
      * @param {boolean} pPreparedScriptsOnly
      */
-    step: function(pDelta, pSceneParam, pPreparedScriptsOnly) {
+    step: function(pDelta, pPreparedScriptsOnly) {
       var tStage = this.stage,
-      self = this,
-      tScenes = this._scenes;
+          tScene = this._currentScene;
 
-      function stepScene(pScene) {
-        if (pScene.isActing === false) return;
-        var tPreviousStep = pScene.currentStep,
-        tScripts = pScene.scripts,
-        tLength = max(tScripts[0].length, tScripts[1].length),
-        tCurrentStep = pScene.currentStep += pDelta,
-        tLooped = false;
+      if (tScene.isActing === false) return;
+      var tPreviousStep = tScene.currentStep,
+          tScripts = tScene.scripts,
+          tLength = max(tScripts[0].length, tScripts[1].length),
+          tCurrentStep = tScene.currentStep += pDelta,
+          tLooped = false;
 
-        if (tCurrentStep >= tLength) {
-          if (self.shouldLoop === false || tLength === 1) {
-            pScene.currentStep = tLength - 1;
-            return;
-          }
-          tCurrentStep = pScene.currentStep -= tLength;
-          tLooped = true;
-        }
-
-        if (tPreviousStep === tCurrentStep) {
-          if (tLooped === true && !pPreparedScriptsOnly) {
-            executeScripts(self, pScripts[0], tCurrentStep);
-            executeScripts(self, pScripts[1], tCurrentStep);
-          }
+      if (tCurrentStep >= tLength) {
+        if (this.shouldLoop === false || tLength === 1) {
+          tScene.currentStep = tLength - 1;
           return;
         }
+        tCurrentStep = tScene.currentStep -= tLength;
+        tLooped = true;
+      }
 
-        if (pDelta < 0 || tLooped === true) {
-          // TODO: Support this.
-        } else {
-          for (var i = tPreviousStep + 1, il = tCurrentStep; i <= il; i++) {
-            pScene.currentStep = i;
-            executeScripts(self, tScripts[0], i);
-          }
+      if (tPreviousStep === tCurrentStep) {
+        if (tLooped === true && !pPreparedScriptsOnly) {
+          executeScripts(this, tScripts[0], tCurrentStep);
+          executeScripts(this, tScripts[1], tCurrentStep);
         }
-
-        if (!pPreparedScriptsOnly) {
-          executeScripts(self, tScripts[1], tCurrentStep);
+      } else if (pDelta < 0 || tLooped === true) {
+        throw new Error('pDelta is less than 0 or we looped');
+        // TODO: Support this.
+      } else {
+        for (var i = tPreviousStep + 1, il = tCurrentStep; i <= il; i++) {
+          tScene.currentStep = i;
+          executeScripts(this, tScripts[0], i);
         }
       }
 
-      if (!pSceneParam) {
-        for (tName in tScenes) {
-          stepScene(tScenes[tName]);
-        }
-      } else if (typeof pSceneParam === 'string') {
-        if ((pSceneParam in tScenes) === false) {
-          throw new Error('Scene doesn\'t exist: ' + pSceneParam);
-        }
-        stepScene(tScenes[pSceneParam]);
+      if (!pPreparedScriptsOnly) {
+        executeScripts(this, tScripts[1], tCurrentStep);
       }
 
       if (!pPreparedScriptsOnly) {
@@ -424,7 +410,7 @@ use('Theatre', 'Matrix');
      */
     addActor: function(pClazz, pOptions) {
       pOptions = Object.mixin({
-        data: null
+        data: new Object()
       }, pOptions);
 
       var tLayer = typeof pOptions.layer === 'number' ? pOptions.layer : this._layerCounter++,

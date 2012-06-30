@@ -13,6 +13,9 @@ use('Theatre', 'StageManager');
 
   theatre.define('theatre.Stage', Stage);
 
+  var mRequestAnimationFrame = global.webkitRequestAnimationFrame !== void 0 ? global.webkitRequestAnimationFrame : null;
+
+
   /**
    * @private
    */
@@ -222,7 +225,7 @@ use('Theatre', 'StageManager');
       while (tIndex-- !== 0) {
         tActingActors = tActingActorDepths[tIndex];
         for (i = 0, il = tActingActors.length; i < il; i++) {
-          tActingActors[i].step(1, null, true);
+          tActingActors[i].step(1, true);
         };
       }
 
@@ -239,11 +242,16 @@ use('Theatre', 'StageManager');
       this.cue('update');
 
       if (this._animationFrameId === null && this._invalidatedActors.length !== 0) {
-        this._animationFrameId = global.webkitRequestAnimationFrame((function(pContext) {
-          return function() {
-            actActors.call(pContext);
-          }
-        })(this));
+        if (mRequestAnimationFrame !== null) {
+          this._animationFrameId = mRequestAnimationFrame((function(pContext) {
+            return function() {
+              actActors.call(pContext);
+            }
+          })(this));
+        } else {
+          this._animationFrameId = 1;
+          actActors.call(this);
+        }
       }
 
       this.cue('leavestep');

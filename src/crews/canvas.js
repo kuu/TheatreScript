@@ -14,8 +14,8 @@ use('Theatre', 'Actor');
   function onEnter() {
     var tCanvas = global.document.createElement('canvas');
 
-    tCanvas.width = this.width || 1;
-    tCanvas.height = this.height || 1;
+    tCanvas.width = this.width || this.parent.width || 1;
+    tCanvas.height = this.height || this.parent.height || 1;
 
     this.context = tCanvas.getContext('2d');
 

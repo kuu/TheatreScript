@@ -5,8 +5,6 @@
  * This code is licensed under the zlib license. See LICENSE for details.
  */
 
-use('Theatre');
-
 (function(global) {
 
   /**

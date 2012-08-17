@@ -1,0 +1,71 @@
+{
+  "properties": {
+    "docsDir": "docs",
+    "vendorDir": "vendor",
+    "binDir": "bin",
+    "closure-compiler-jar": "${vendorDir}/google-closure-compiler/compiler.jar"
+  },
+
+  "targets": {
+    "all": {
+      "builder": "closure-compiler",
+      "outputs": "${binDir}/theatrescript.js",
+      "resources": [
+        {
+          "type": "targets",
+          "targets": [
+            "core",
+            "dom-crew",
+            "canvas-crew"
+          ]
+        }
+      ]
+    },
+
+    "core": {
+      "builder": "closure-compiler",
+      "outputs": "${binDir}/core.js",
+      "resources": [
+        {
+          "type": "files",
+          "root": "src/core",
+          "files": [
+            "Theatre.js",
+            "Matrix.js",
+            "Actor.js",
+            "StageManager.js",
+            "Stage.js"
+          ]
+        }
+      ]
+    },
+
+    "dom-crew": {
+      "builder": "closure-compiler",
+      "outputs": "${binDir}/crews/dom.js",
+      "resources": [
+        {
+          "type": "files",
+          "root": "src/crews/DOM",
+          "files": [
+            "DOM.js"
+          ]
+        }
+      ]
+    },
+
+    "canvas-crew": {
+      "builder": "closure-compiler",
+      "outputs": "${binDir}/crews/canvas.js",
+      "resources": [
+        {
+          "type": "files",
+          "root": "src/crews/canvas",
+          "files": [
+            "canvas.js"
+          ]
+        }
+      ]
+    }
+  }
+}

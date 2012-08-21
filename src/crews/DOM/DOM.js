@@ -27,6 +27,12 @@
     this.invalidate();
   }
 
+  function onLeave() {
+    if (this.element.parentNode !== null) {
+      this.element.parentNode.removeChild(this.element);
+    }
+  }
+
   /**
    * An Actor for working with DOM elements.
    * @constructor
@@ -41,13 +47,14 @@
      */
     this.styles = pData.styles || null;
 
-    this.width = pData.width || 0;
+    this.width = pData.width || 'auto';
 
-    this.height = pData.height || 0;
+    this.height = pData.height || 'auto';
 
     this.container = pData.container || global.document.body;
 
     this.listen('enter', onEnter);
+    this.listen('leave', onLeave);
   });
 
   Object.defineProperties(DOMActor.prototype, /** @lends theatre.crews.dom.DOMActor# */ {

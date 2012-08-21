@@ -53,28 +53,22 @@
         var tContainer = document.getElementById('container');
 
         var tContainerActor = this.addActor(DOMActor, {
-          data: {
-            container: tContainer
-          }
+          container: tContainer
         });
 
         tContainerActor = tContainerActor.addActor(CanvasActor, {
-          data: {
-            width: mWidth,
-            height: mHeight
-          }
+          width: mWidth,
+          height: mHeight
         });
 
         for (var i = 0; i < mNumber; i++) {
           var tActor = tContainerActor.addActor(BoxActor, {
-            data: {
-              width: random() * mWidth * .05 | 0,
-              height: random() * mHeight * .05 | 0,
-              color: '#'
-                  + (random() * 15 | 0).toString(16)
-                  + (random() * 15 | 0).toString(16)
-                  + (random() * 15 | 0).toString(16)
-            }
+            width: random() * mWidth * .05 | 0,
+            height: random() * mHeight * .05 | 0,
+            color: '#'
+                + (random() * 15 | 0).toString(16)
+                + (random() * 15 | 0).toString(16)
+                + (random() * 15 | 0).toString(16)
           });
           tActor.listen('move', onMove);
           tActor.x = (random() * mWidth - tActor.width) | 0;

@@ -109,7 +109,7 @@
     invalidate: {
       value: function() {
         invalidateBackup.call(this);
-        this.parent.invalidate();
+        if (this.parent) this.parent.invalidate();
       }
     }
   });

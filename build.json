@@ -3,7 +3,8 @@
     "docsDir": "docs",
     "vendorDir": "vendor",
     "binDir": "bin",
-    "closure-compiler-jar": "${vendorDir}/google-closure-compiler/compiler.jar"
+    "closure-compiler-jar": "${vendorDir}/google-closure-compiler/compiler.jar",
+    "closure-compiler-compilation-level": "WHITESPACE_ONLY"
   },
 
   "targets": {

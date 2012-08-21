@@ -176,6 +176,7 @@
      * @return theatre.Stage This Stage.
      */
     open: function() {
+      if (this.isOpen) return;
       this.isOpen = true;
       this.timer = setTimeout(tickCallback, this.stepRate, this);
       return this;
@@ -187,10 +188,21 @@
      * @return theatre.Stage This Stage.
      */
     close: function() {
+      if (!this.isOpen) return;
       clearTimeout(this.timer);
       this.timer = null;
       this.isOpen = false;
       return this;
+    },
+
+    /**
+     * Adds an Actor to this Stage's StageManager.
+     * @param {function(new:theatre.Actor)} pClazz The Actor type to add.
+     * @param {Object=} pOptions Options.
+     * @return {theatre.Actor} The new Actor.
+     */
+    addActor: function(pClazz, pOptions) {
+      return this.stageManager.addActor(pClazz, pOptions);
     },
 
     /**
@@ -222,6 +234,7 @@
       // the current slide index on each actor.
       while (tIndex-- !== 0) {
         tActingActors = tActingActorDepths[tIndex];
+        if (!tActingActors) continue;
         for (i = 0, il = tActingActors.length; i < il; i++) {
           tActingActors[i].step(1, true);
         };
@@ -232,6 +245,7 @@
       // Run scripts and cues on active actors.
       while (tIndex-- !== 0) {
         tActingActors = tActingActorDepths[tIndex];
+        if (!tActingActors) continue;
         for (i = 0, il = tActingActors.length; i < il; i++) {
           tActingActors[i].doScripts();
         };
@@ -289,7 +303,7 @@
      * @param {theatre.Actor} pActor
      */
     deactivateActor: function(pActor) {
-      var tParent = pReel.parent,
+      var tParent = pActor.parent,
       tDepth = 0;
 
       while (tParent != null) {
@@ -302,7 +316,7 @@
 
       var i = tActingActors[tDepth].indexOf(pActor);
       if (i >= 0) {
-        tActingActors.splice(i, 1);
+        tActingActors[tDepth].splice(i, 1);
       }
     },
 

@@ -40,8 +40,8 @@
       tScene = this._scenes[pSceneName] = {
         name: pSceneName,
         isActing: false,
-        currentStep: 0,
-        previousStep: -1,
+        currentStep: -1,
+        previousStep: -2,
         shouldLoop: true,
         scripts: [new Array(), new Array()]
       };
@@ -124,9 +124,9 @@
        */
       this._currentScene = {
         name: '',
-        isActing: false,
-        currentStep: 0,
-        previousStep: -1,
+        isActing: true,
+        currentStep: -1,
+        previousStep: -2,
         shouldLoop: true,
         scripts: [new Array(), new Array()]
       };
@@ -231,7 +231,7 @@
      * will be loaded during a preparation script and therefore
      * it is not recommended to try to access other Actors.
      * @param {number|string} pStep A step index or a time string.
-     * @param {function} pScript
+     * @param {function(this:theatre.Actor)} pScript
      * @param {string} pSceneName The name of the scene to add to.
      * @return {theatre.Actor} This Actor.
      */
@@ -365,13 +365,16 @@
           tLooped = false;
 
       if (tCurrentStep >= tLength) {
-        if (this.shouldLoop === false || tLength === 1) {
+        if (tScene.shouldLoop === false || tLength === 1) {
           tScene.currentStep = tLength - 1;
           return;
         }
         tCurrentStep = tScene.currentStep -= tLength;
+        tPreviousStep = -1;
         tLooped = true;
       }
+
+      tScene.previousStep = tPreviousStep;
 
       if (tPreviousStep === tCurrentStep) {
         if (tLooped === true && !pPreparedScriptsOnly) {
@@ -379,8 +382,14 @@
           executeScripts(this, tScripts[1], tCurrentStep);
         }
       } else if (pDelta < 0 || tLooped === true) {
-        throw new Error('pDelta is less than 0 or we looped');
-        // TODO: Support this.
+        // TODO: Make this smart with a diff. Need to handle all things made in a prepared script...
+        if (tLooped === true) {
+          this.cue('sceneloop');
+        }
+        for (var i = 0, il = tCurrentStep; i <= il; i++) {
+          tScene.currentStep = i;
+          executeScripts(this, tScripts[0], i);
+        }
       } else {
         for (var i = tPreviousStep + 1, il = tCurrentStep; i <= il; i++) {
           tScene.currentStep = i;
@@ -407,9 +416,7 @@
      * @todo Make the layer counter smart.
      */
     addActor: function(pClazz, pOptions) {
-      pOptions = Object.mixin({
-        data: new Object()
-      }, pOptions);
+      pOptions = pOptions || new Object();
 
       var tLayer = typeof pOptions.layer === 'number' ? pOptions.layer : this._layerCounter++,
           tActors;
@@ -423,12 +430,17 @@
         throw new Error('Actor already exists at layer ' + tLayer);
       }
 
-      var tActor = new pClazz(),
-      tName = typeof pOptions.name !== 'string' ? pOptions.name : 'instance' + tStage._actorNameCounter++;
-      tActor.initialize(pOptions.data, this.stage, tLayer, this, tName);
+      var tActor = new pClazz();
+      var tName = typeof pOptions.name === 'string' ? pOptions.name : 'instance' + this.stage._actorNameCounter++;
 
       tActors[tLayer] = tActor;
+
+      tActor.initialize(pOptions, this.stage, tLayer, this, tName);
+
       tActor.cue('enter');
+
+      tActor.startActing();
+
       return tActor;
     },
 
@@ -452,6 +464,17 @@
     },
 
     /**
+     * Gets the Actor at the given layer or null if there is
+     * no Actor there.
+     * @param {Number} pLayer The layer to retrieve from.
+     * @return {theatre.Actor|null} The Actor or null.
+     */
+    getActorAtLayer: function(pLayer) {
+      if (('_actors' in this) === false) return null;
+      return this._actors[pLayer] || null;
+    },
+
+    /**
      * Searches this Actor's children and their children recursivly until
      * it finds the Actor given in the query or null if it could not be
      * found.
@@ -471,6 +494,7 @@
       this.cue('leave');
       this.stage.deactivateActor(this);
       this.parent._actors[this.layer] = void 0;
+      this.parent = null;
     },
 
     /**
@@ -549,11 +573,9 @@
     var tClazz = global.eval('(function ' + pName + '(){})'),
     tPrototype = tClazz.prototype = new pExtends(),
     tSuperInitialize = tPrototype.initialize;
-    if (pInitializer !== void 0) {
-      tPrototype.initialize = function() {
-        tSuperInitialize.apply(this, arguments);
-        pInitializer.apply(this, arguments);
-      }
+    tPrototype.initialize = function() {
+      tSuperInitialize.apply(this, arguments);
+      if (pInitializer) pInitializer.apply(this, arguments);
     }
 
     return tClazz;

@@ -9,17 +9,6 @@
 
   var theatre = global.theatre;
 
-  function onEnter() {
-    var tCanvas = global.document.createElement('canvas');
-
-    tCanvas.width = this.width || this.parent.width || 1;
-    tCanvas.height = this.height || this.parent.height || 1;
-
-    this.context = tCanvas.getContext('2d');
-
-    this.invalidate();
-  }
-
   /**
    * An Actor for working with a 2d canvas.
    * @constructor
@@ -31,14 +20,35 @@
 
     this.height = pData.height || 0;
 
-    this.context = null;
+    this._drawingCache = null;
 
-    this.listen('enter', onEnter);
+    this.invalidate();
   });
 
   var invalidateBackup = theatre.Actor.prototype.invalidate;
 
   Object.defineProperties(CanvasActor.prototype, /** @lends theatre.crews.dom.CanvasActor# */ {
+
+    /**
+     * Get's or creates a drawing cache that can
+     * be used to draw on and stored permanently.
+     * @return {CanvasRenderingContext2D} The cache.
+     */
+    getDrawingCache: {
+      value: function() {
+        if (this._drawingCache !== null) {
+          return this._drawingCache;
+        }
+
+        var tCanvas = global.document.createElement('canvas');
+
+        tCanvas.width = this.width || this.parent.width || 1;
+        tCanvas.height = this.height || this.parent.height || 1;
+
+        return this._drawingCache = tCanvas.getContext('2d');
+      }
+    },
+
     /**
      * Overload this in your subclass to draw your Actor.
      * @param {CanvasRenderingContext2D} pContext The rendering context.
@@ -50,27 +60,26 @@
     },
 
     /**
-     * Returns the previous draw result
-     * @return {HTMLCanvasElement} The draw result.
+     * Dispatch a request to draw.
      */
-    getDrawResult: {
-      value: function() {
-        var tCtx = this.context;
-        if (this.isInvalidated !== true) {
-          return tCtx.canvas;
+    dispatchDraw: {
+      value: function(pContext) {
+        if (!pContext && this.parent.dispatchDraw === void 0) {
+          pContext = this.getDrawingCache();
         }
-        tCtx.save();
-        this.draw(tCtx);
-        tCtx.restore();
+
+        pContext.save();
+        this.draw(pContext);
+        pContext.restore();
+
         var tActors = this.getActors();
         for (var i = 0, il = tActors.length; i < il; i++) {
           var tActor = tActors[i],
               tMatrix = tActor.matrix;
 
-          var tResult = tActor.getDrawResult !== void 0 ? tActor.getDrawResult() : null;
-          if (tResult !== null) {
-            tCtx.save();
-            tCtx.transform(
+          if (tActor.dispatchDraw !== void 0) {
+            pContext.save();
+            pContext.transform(
               tMatrix.a,
               tMatrix.b,
               tMatrix.c,
@@ -78,11 +87,12 @@
               tMatrix.e,
               tMatrix.f
             );
-            tCtx.drawImage(tResult, 0, 0);
-            tCtx.restore();
+            tActor.dispatchDraw(pContext);
+            pContext.restore();
           }
         }
-        return tCtx.canvas;
+
+        this.isInvalidated = false;
       }
     },
 
@@ -91,13 +101,13 @@
      */
     act: {
       value: function() {
-        var tCanvas = this.getDrawResult();
+        this.dispatchDraw();
         
         if (this.isAdded !== true) {
           this.isAdded = true;
           if (theatre.crews.dom && this.parent instanceof theatre.crews.dom.DOMActor) {
-            tCanvas.style.zIndex = this.layer;
-            this.parent.element.appendChild(tCanvas);
+            this._drawingCache.canvas.style.zIndex = this.layer;
+            this.parent.element.appendChild(this._drawingCache.canvas);
           }
         }
       }

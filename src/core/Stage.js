@@ -115,7 +115,7 @@
       },
       set: function(pValue) {
         tStageManager = pValue;
-        pValue.initialize(null, this);
+        pValue.initialize(null, this, 0, null, null);
         pValue.isActing = true;
         this.activateActor(pValue, true);
       }
@@ -126,6 +126,7 @@
 
 
   /**
+   * @todo Is there a way to make this smarter?...
    * @private
    * @this {theatre.Stage}
    */
@@ -133,10 +134,21 @@
     this._animationFrameId = null;
     var tInvalidated = this._invalidatedActors;
 
+    function actActorInverse(pActor) {
+      var tParent = pActor.parent;
+      if (tParent !== null && tParent.isInvalidated === true) {
+        actActorInverse(tParent);
+      }
+      if (pActor.isInvalidated === true) {
+        pActor.act();
+        pActor.isInvalidated = false;
+      }
+    }
+
     for (var i = 0, il = tInvalidated.length; i < il; i++) {
       var tActor = tInvalidated[i];
-      tActor.act();
-      tActor.isInvalidated = false;
+      if (tActor.isInvalidated === false || tActor.stage === null) continue;
+      actActorInverse(tActor);
     };
 
     tInvalidated.length = 0;

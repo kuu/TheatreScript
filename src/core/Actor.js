@@ -492,9 +492,16 @@
       if (this.parent === null) return;
       if (this.parent._actors[this.layer] !== this) return;
       this.cue('leave');
+      var tChildren = this.getActors();
+      for (var i = 0, il = tChildren.length; i < il; i++) {
+        var tChild = tChildren[i];
+        this.stage.deactivateActor(tChild); // TODO: How to reactivate afterwards?
+        tChild.stage = null;
+      }
       this.stage.deactivateActor(this);
       this.parent._actors[this.layer] = void 0;
       this.parent = null;
+      this.stage = null;
     },
 
     /**

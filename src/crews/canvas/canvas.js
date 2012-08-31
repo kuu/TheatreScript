@@ -76,13 +76,34 @@
         pContext.restore();
 
         var tActors = this.getActors();
+        var tClipUntil = -1;
+        var tClipCanvas = null;
+        var tClippedCanvas = null;
+        var tClippedContext = null;
+        var tMainContext = pContext;
         for (var i = 0, il = tActors.length; i < il; i++) {
-          var tActor = tActors[i],
-              tMatrix = tActor.matrix;
+          var tActor = tActors[i];
+          var tMatrix = tActor.matrix;
+          var tCurrentContext = tMainContext;
 
           if (tActor.dispatchDraw !== void 0) {
-            pContext.save();
-            pContext.transform(
+            if (tActor.clipDepth > 0) {
+              tClipUntil = tActor.layer + tActor.clipDepth;
+              tClipCanvas = global.document.createElement('canvas');
+              tClipCanvas.width = pContext.canvas.width;
+              tClipCanvas.height = pContext.canvas.height;
+              tClippedCanvas = global.document.createElement('canvas');
+              tClippedCanvas.width = pContext.canvas.width;
+              tClippedCanvas.height = pContext.canvas.height;
+              tCurrentContext = tClipCanvas.getContext('2d');
+              tCurrentContext.scale(0.05, 0.05);
+              tClippedContext = tClippedCanvas.getContext('2d');
+              tClippedContext.scale(0.05, 0.05);
+            } else if (!tActor.clipDepth && tActor.layer < tClipUntil) {
+              tCurrentContext = tClippedContext;
+            }
+            tCurrentContext.save();
+            tCurrentContext.transform(
               tMatrix.a,
               tMatrix.b,
               tMatrix.c,
@@ -90,8 +111,31 @@
               tMatrix.e,
               tMatrix.f
             );
-            tActor.dispatchDraw(pContext);
-            pContext.restore();
+            tActor.dispatchDraw(tCurrentContext);
+            tCurrentContext.restore();
+
+            if (tClipUntil !== -1) {
+
+              if (i === il - 1 || !tActor.clipDepth && tActor.layer >= tClipUntil) {
+                var tBackup = tCurrentContext.globalCompositeOperation;
+                tCurrentContext.globalCompositeOperation = 'destination-in';
+                tCurrentContext.save();
+                tCurrentContext.scale(20, 20);
+                tCurrentContext.drawImage(tClipCanvas, 0, 0);
+                tCurrentContext.restore();
+                tCurrentContext.globalCompositeOperation = tBackup;
+
+                tMainContext.save();
+                tMainContext.scale(20, 20);
+                tMainContext.drawImage(tClippedCanvas, 0, 0);
+                tMainContext.restore();
+
+                tClipUntil = -1;
+                tClipCanvas = null;
+                tClippedCanvas = null;
+                tClippedContext = null;
+              }
+            }
           }
         }
 

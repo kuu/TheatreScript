@@ -78,4 +78,30 @@
     return defineSymbol(pName, pObject, pRoot);
   };
 
+  /**
+   * Makes a class inherit from another class in c# style.
+   * @memberOf theatre
+   * @param {Function} pThis The class you want to extend.
+   * @param {Function} pBase The class that pThis will extend from.
+   */
+  theatre.inherit = function(pThis, pBase) {
+    var tThisProto = pThis.prototype = Object.create(pBase.prototype);
+    tThisProto.constructor = pThis;
+    tThisProto.base = function() {
+      this.base = pBase.prototype.base;
+      pBase.apply(this, arguments);
+      this.base = pBase.prototype;
+    };
+    var tBaseProto = pBase.prototype;
+    while (tBaseProto !== Object.prototype) {
+      var tProps = Object.getOwnPropertyNames(tBaseProto);
+      for (var i = 0, il = tProps.length; i < il; i++) {
+        if (!tThisProto.hasOwnProperty(tProps[i])) {
+          Object.defineProperty(tThisProto, tProps[i], Object.getOwnPropertyDescriptor(tBaseProto, tProps[i]));
+        }
+      }
+      tBaseProto = tBaseProto.__proto__;
+    }
+  };
+
 }(this));

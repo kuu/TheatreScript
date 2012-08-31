@@ -13,7 +13,14 @@
    * @constructor
    * @name theatre.Matrix
    */
-  var Matrix = typeof CSSMatrix !== 'undefined' ? CSSMatrix : WebKitCSSMatrix;
+  var Matrix;
+  if (typeof CSSMatrix !== 'undefined') {
+    Matrix = CSSMatrix;
+  } else if (typeof WebKitCSSMatrix !== 'undefined') {
+    Matrix = WebKitCSSMatrix;
+  } else if (typeof MozCSSMatrix !== 'undefined') {
+    Matrix = MozCSSMatrix;
+  }
 
   global.theatre.define('theatre.Matrix', Matrix);
 

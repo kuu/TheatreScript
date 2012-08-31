@@ -15,17 +15,18 @@
    * @name theatre.crews.canvas.CanvasActor
    * @augments theatre.Actor
    */
-  var CanvasActor = theatre.createActor('CanvasActor', theatre.Actor, function(pData) {
-    this.width = pData.width || 0;
-
-    this.height = pData.height || 0;
+  function CanvasActor() {
+    this.base();
 
     this._drawingCache = null;
+    this.width = 0;
+    this.height = 0;
 
-    this.invalidate();
-  });
-
-  var invalidateBackup = theatre.Actor.prototype.invalidate;
+    this.listen('enter', function(pData) {
+      this.invalidate();
+    });
+  }
+  theatre.inherit(CanvasActor, theatre.Actor);
 
   Object.defineProperties(CanvasActor.prototype, /** @lends theatre.crews.dom.CanvasActor# */ {
 
@@ -46,7 +47,8 @@
         tCanvas.height = this.height || this.parent.height || 1;
 
         return this._drawingCache = tCanvas.getContext('2d');
-      }
+      },
+      writable: true
     },
 
     /**
@@ -56,7 +58,8 @@
     draw: {
       value: function(pContext) {
         pContext.clearRect(0, 0, this.width, this.height);
-      }
+      },
+      writable: true
     },
 
     /**
@@ -93,7 +96,8 @@
         }
 
         this.isInvalidated = false;
-      }
+      },
+      writable: true
     },
 
     /**
@@ -110,7 +114,8 @@
             this.parent.element.appendChild(this._drawingCache.canvas);
           }
         }
-      }
+      },
+      writable: true
     },
 
     /**
@@ -118,9 +123,12 @@
      */
     invalidate: {
       value: function() {
-        invalidateBackup.call(this);
-        if (this.parent) this.parent.invalidate();
-      }
+        theatre.Actor.prototype.invalidate.call(this);
+        if (this.parent) {
+          this.parent.invalidate();
+        }
+      },
+      writable: true
     }
   });
 

@@ -12,28 +12,107 @@
       max = global.Math.max;
 
   theatre.define('theatre.Actor', Actor);
-  theatre.define('theatre.createActor', createActor);
 
   /**
    * The base object for working with something on a stage.
    * @constructor
    * @name theatre.Actor
    */
-  function Actor() {}
+  function Actor() {
+
+    /**
+     * A check to make sure we used inherit properly.
+     * @type {Boolean}
+     * @private
+     */
+    this._ctorCalled = true;
+
+    /**
+     * The Stage this Actor is part of.
+     * @type theatre.Stage
+     */
+    this.stage = null;
+
+    /**
+     * The Matrix for the position of this Actor.
+     * @type theatre.Matrix
+     */
+    this.matrix = new Matrix();
+
+    /**
+     * The layer this Actor is on.
+     * @type number
+     */
+    this.layer = -1;
+
+    /**
+     * The parent of this Actor
+     * @type theatre.Actor
+     */
+    this.parent = null;
+
+    /**
+     * The name of this Actor
+     * @type string
+     */
+    this.name = null;
+
+    /**
+     * True if this Actor is currently active.
+     * @type boolean
+     * @default false
+     */
+    this.isActing = false;
+
+    /**
+     * True if invalidate has been called on this Actor.
+     * @type boolean
+     * @default false
+     */
+    this.isInvalidated = false;
+
+    /**
+     * @private
+     * @type {Object}
+     */
+    this._currentScene = {
+      name: '',
+      isActing: true,
+      currentStep: -1,
+      previousStep: -2,
+      shouldLoop: true,
+      scripts: [new Array(0), new Array(0)]
+    };
+
+    /**
+     * @private
+     * @type {Object}
+     */
+    this._scenes = {
+      '': this._currentScene
+    };
+
+    /**
+     * @private
+     * @type number
+     */
+    this._layerCounter = 0;
+  }
 
   /**
    * Adds a script to a scene with in the given type.
    * @private
    * @memberOf theatre.Actor#
    * @param {string} pSceneName
-   * @param {(number|string)} pStep
+   * @param {number} pStep
    * @param {function} pScript
    * @param {number} pType 0 for preparation scripts and 1 for normal scripts.
    */
   function addScriptToScene(pSceneName, pStep, pScript, pType) {
     var tScene;
-    if (!pSceneName) pSceneName = '';
-    pStep = this.stage.timeToStep(pStep);
+    if (!pSceneName) {
+      pSceneName = '';
+    }
     if (pSceneName in this._scenes) {
       tScene = this._scenes[pSceneName].scripts[pType];
     } else {
@@ -59,92 +138,11 @@
       var tScriptStep = pScripts[pStep];
       for (var i = 0, il = tScriptStep.length; i < il; i++) {
         tScriptStep[i].call(pContext);
-      };
+      }
     }
   }
 
   Actor.prototype = /** @lends theatre.Actor# */ {
-
-    /**
-     * Initializes this Actor after it is constructed.
-     * @param {!Object} pData Data to pass to each instance of this Actor.
-     * @param {theatre.Stage} pStage The Stage to be added to.
-     * @param {number} pLayer The layer added to.
-     * @param {theatre.Actor} pParent The parent of this Actor.
-     * @param {string} pName The name of this Actor.
-     */
-    initialize: function(pData, pStage, pLayer, pParent, pName) {
-      /**
-       * The Stage this Actor is part of.
-       * @type theatre.Stage
-       */
-      this.stage = pStage;
-
-      /**
-       * The Matrix for the position of this Actor.
-       * @type theatre.Matrix
-       */
-      this.matrix = new Matrix();
-
-      /**
-       * The layer this Actor is on.
-       * @type number
-       */
-      this.layer = pLayer;
-
-      /**
-       * The parent of this Actor
-       * @type theatre.Actor
-       */
-      this.parent = pParent;
-
-      /**
-       * The name of this Actor
-       * @type string
-       */
-      this.name = pName;
-
-      /**
-       * True if this Actor is currently active.
-       * @type boolean
-       * @default false
-       */
-      this.isActing = false;
-
-      /**
-       * True if invalidate has been called on this Actor.
-       * @type boolean
-       * @default false
-       */
-      this.isInvalidated = false;
-
-      /**
-       * @private
-       * @type {Object}
-       */
-      this._currentScene = {
-        name: '',
-        isActing: true,
-        currentStep: -1,
-        previousStep: -2,
-        shouldLoop: true,
-        scripts: [new Array(), new Array()]
-      };
-
-      /**
-       * @private
-       * @type {Object}
-       */
-      this._scenes = {
-        '': this._currentScene
-      };
-
-      /**
-       * @private
-       * @type number
-       */
-      this._layerCounter = 0;
-    },
 
     /**
      * Listen for a cue and execute the callback when it happens.
@@ -158,7 +156,9 @@
       }
       if ((pName in this._cues) === false) {
         this._cues[pName] = [pCallback];
-        this.stage.registerListener(pName, this);
+        if (this.stage !== null) {
+          this.stage.registerListener(pName, this);
+        }
       } else {
         this._cues[pName].push(pCallback);
       }
@@ -179,10 +179,12 @@
             tCues.splice(i, 1);
             break;
           }
-        };
+        }
         if (tCues.length === 0) {
           delete this._cues[pName];
-          this.stage.unregisterListener(pName, this);
+          if (this.stage !== null) {
+            this.stage.unregisterListener(pName, this);
+          }
         }
       }
       return this;
@@ -203,7 +205,7 @@
             data: pData,
             name: pName
           });
-        };
+        }
       }
       return this;
     },
@@ -215,10 +217,12 @@
      */
     invalidate: function() {
       if (this.isInvalidated === true) {
-        return;
+        return this;
       }
       this.isInvalidated = true;
-      this.stage.invalidate(this);
+      if (this.stage !== null) {
+        this.stage.invalidate(this);
+      }
       return this;
     },
 
@@ -308,7 +312,7 @@
      * This will execute scripts instantly in the step given
      * in that scene.
      * @param {string} pSceneName The scene name.
-     * @param {(number|string)} pStep The step or time to go to.
+     * @param {number} pStep The step to go to.
      * @return {theatre.Actor} This Actor.
      */
     gotoInScene: function(pSceneName, pStep) {
@@ -317,7 +321,6 @@
       }
       this.startActingScene(pSceneName);
       var tScene = this._currentScene;
-      pStep = this.stage.timeToStep(pStep);
       this.step(pStep - tScene.currentStep, false);
       return this;
     },
@@ -331,7 +334,7 @@
       if ((pSceneName in this._scenes) === false) {
         throw new Error('Scene doesn\'t exist: ' + pSceneName);
       }
-      if (this._currentScene.name === pSceneName) return;
+      if (this._currentScene.name === pSceneName) return this;
       this._currentScene.isActing = false;
       var tScene = this._scenes[pSceneName];
       tScene.isActing = true;
@@ -354,10 +357,11 @@
      * @param {boolean} pPreparedScriptsOnly
      */
     step: function(pDelta, pPreparedScriptsOnly) {
-      var tStage = this.stage,
-          tScene = this._currentScene;
+      var tScene = this._currentScene;
 
-      if (tScene.isActing === false) return;
+      if (tScene.isActing === false) {
+        return;
+      }
       var tPreviousStep = tScene.currentStep,
           tScripts = tScene.scripts,
           tLength = max(tScripts[0].length, tScripts[1].length),
@@ -375,6 +379,7 @@
       }
 
       tScene.previousStep = tPreviousStep;
+      var i, il;
 
       if (tPreviousStep === tCurrentStep) {
         if (tLooped === true && !pPreparedScriptsOnly) {
@@ -386,12 +391,12 @@
         if (tLooped === true) {
           this.cue('sceneloop');
         }
-        for (var i = 0, il = tCurrentStep; i <= il; i++) {
+        for (i = 0, il = tCurrentStep; i <= il; i++) {
           tScene.currentStep = i;
           executeScripts(this, tScripts[0], i);
         }
       } else {
-        for (var i = tPreviousStep + 1, il = tCurrentStep; i <= il; i++) {
+        for (i = tPreviousStep + 1, il = tCurrentStep; i <= il; i++) {
           tScene.currentStep = i;
           executeScripts(this, tScripts[0], i);
         }
@@ -409,17 +414,25 @@
     /**
      * Adds a new Actor of the given type to the Stage as a child of
      * this Actor.
-     * @param {function(new:theatre.Actor)} pClazz The Actor type to add.
+     * @param {function(new:theatre.Actor)} pActor The Actor to add.
      * @param {Object=} pOptions Options.
-     * @return {theatre.Actor} The new Actor.
+     * @return {theatre.Actor} This Actor.
      * @todo Make a sorted dictionary, not a massive array.
      * @todo Make the layer counter smart.
      */
-    addActor: function(pClazz, pOptions) {
+    addActor: function(pActor, pOptions) {
+      if (pActor._ctorCalled !== true) {
+        throw new Error('Actor not initialized correctly. Call this.base.constructor() first.');
+      }
+      
+      if (pActor.stage !== null) {
+        throw new Error('Actor already belongs to another Actor.');
+      }
+
       pOptions = pOptions || new Object();
 
-      var tLayer = typeof pOptions.layer === 'number' ? pOptions.layer : this._layerCounter++,
-          tActors;
+      var tLayer = typeof pOptions.layer === 'number' ? pOptions.layer : this._layerCounter++;
+      var tActors;
       if (('_actors' in this) === false) {
         tActors = this._actors = new Array(tLayer + 1);
       } else {
@@ -430,18 +443,46 @@
         throw new Error('Actor already exists at layer ' + tLayer);
       }
 
-      var tActor = new pClazz();
-      var tName = typeof pOptions.name === 'string' ? pOptions.name : 'instance' + this.stage._actorNameCounter++;
+      var tName = typeof pOptions.name === 'string' ? pOptions.name : 'instance' + theatre.Stage._actorNameCounter++;
 
-      tActors[tLayer] = tActor;
+      var tStage = this.stage;
 
-      tActor.initialize(pOptions, this.stage, tLayer, this, tName);
+      tActors[tLayer] = pActor;
+      pActor.stage = tStage;
+      pActor.layer = tLayer;
+      pActor.name = tName;
+      pActor.parent = this;
 
-      tActor.cue('enter');
+      function recursiveEnter(pActor) {
+        pActor.stage = tStage;
 
-      tActor.startActing();
+        var tActorCues = pActor._cues;
+        if (tActorCues !== void 0) {
+          for (var k in tActorCues) {
+            tStage.registerListener(k, pActor);
+          }
+        }
 
-      return tActor;
+        if (pActor.isInvalidated === true) {
+          tStage.invalidate(pActor);
+        }
+        pActor.cue('enter', pActor._pendingAddActorOptions);
+        pActor._pendingAddActorOptions = null;
+        pActor.startActing();
+        var tChildren = pActor.getActors();
+        for (var i = 0, il = tChildren.length; i < il; i++) {
+          recursiveEnter(tChildren[i]);
+        }
+      }
+
+      if (this.stage !== null) {
+        pActor._pendingAddActorOptions = pOptions;
+        recursiveEnter(pActor);
+      } else {
+        pActor._pendingAddActorOptions = pOptions;
+      }
+
+      return this;
     },
 
     /**
@@ -470,7 +511,9 @@
      * @return {theatre.Actor|null} The Actor or null.
      */
     getActorAtLayer: function(pLayer) {
-      if (('_actors' in this) === false) return null;
+      if (('_actors' in this) === false) {
+        return null;
+      }
       return this._actors[pLayer] || null;
     },
 
@@ -489,23 +532,45 @@
      * Removes this Actor from it's parent.
      */
     leave: function() {
-      if (this.parent === null) return;
-      if (this.parent._actors[this.layer] !== this) return;
+      if (this.parent === null) {
+        return;
+      }
+      if (this.parent._actors[this.layer] !== this) {
+        return;
+      }
       this.cue('leave');
 
-      function recursivlyDeactivate(pActor) {
+      function recursivelyDeactivate(pActor) {
         var tChildren = pActor.getActors();
         for (var i = 0, il = tChildren.length; i < il; i++) {
           var tChild = tChildren[i];
           pActor.stage.deactivateActor(tChild); // TODO: How to reactivate afterwards?
-          recursivlyDeactivate(tChild);
+          recursivelyDeactivate(tChild);
+
+          var tActorCues = tChild._cues;
+          if (tActorCues !== void 0) {
+            for (var k in tActorCues) {
+              tChild.stage.unregisterListener(k, tChild);
+            }
+          }
+
           tChild.stage = null;
         }
       }
 
-      recursivlyDeactivate(this);
+      if (this.stage !== null) {
+        recursivelyDeactivate(this);
 
-      this.stage.deactivateActor(this);
+        this.stage.deactivateActor(this);
+
+        var tActorCues = this._cues;
+        if (tActorCues !== void 0) {
+          for (var i in tActorCues) {
+            this.stage.unregisterListener(i, this);
+          }
+        }
+      }
+
       this.parent._actors[this.layer] = void 0;
       this.parent = null;
       this.stage = null;
@@ -573,26 +638,6 @@
     }
   };
 
-  /**
-   * Creates a new {@link theatre.Actor} type.
-   * Allows you to add an initializer function that works similar to
-   * extending a class and object construction in Java.
-   * @param {string} pName The name of the Actor type.
-   * @param {function(new:theatre.Actor)} pExtends The Actor to prototype off of.
-   * @param {function(theatre.Stage)=} pInitializer A function to initialize this Actor.
-   * @todo Name might not be needed. Only for debugging...
-   */
-  function createActor(pName, pExtends, pInitializer) {
-    if (!pExtends) pExtends = theatre.Actor;
-    var tClazz = global.eval('(function ' + pName + '(){})'),
-    tPrototype = tClazz.prototype = new pExtends(),
-    tSuperInitialize = tPrototype.initialize;
-    tPrototype.initialize = function() {
-      tSuperInitialize.apply(this, arguments);
-      if (pInitializer) pInitializer.apply(this, arguments);
-    }
-
-    return tClazz;
-  }
+  Actor.prototype.constructor = Actor;
 
 }(this));

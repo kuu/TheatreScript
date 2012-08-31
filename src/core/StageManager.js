@@ -15,7 +15,10 @@
    * @constructor
    * @extends theatre.Actor
    */
-  var StageManager = theatre.createActor('StageManager');
+  function StageManager() {
+    this.base();
+  }
+  theatre.inherit(StageManager, theatre.Actor);
 
   theatre.define('theatre.StageManager', StageManager);
 

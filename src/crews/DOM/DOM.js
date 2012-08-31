@@ -9,12 +9,19 @@
 
   var theatre = global.theatre;
 
-  function onEnter() {
-    var tElement = this.element = this.elementTemplate.cloneNode(true),
-    tStyle = tElement.style,
-    tProtoStyles = this.styles;
+  function onEnter(pData) {
+    pData = pData.data;
+    this.styles = pData.styles || null;
+    this.width = pData.width || 'auto';
+    this.height = pData.height || 'auto';
+    this.container = pData.container || global.document.body;
+
+    var tElement = this.element = this.elementTemplate.cloneNode(true);
+    var tStyle = tElement.style;
+    var tProtoStyles = this.styles;
 
     tStyle.zIndex = this.layer;
+    tStyle.position = 'absolute';
     tStyle.width = typeof this.width === 'string' ? this.width : this.width + 'px';
     tStyle.height = typeof this.height === 'string' ? this.height : this.height + 'px';
 
@@ -39,23 +46,26 @@
    * @name theatre.crews.dom.DOMActor
    * @augments theatre.Actor
    */
-  var DOMActor = theatre.createActor('DOMActor', theatre.Actor, function(pData) {
+  function DOMActor() {
+    this.base();
+
     /**
      * CSS styles (of a HTMLElement style field) to apply to this Actor.
      * @type Object
      * @default null
      */
-    this.styles = pData.styles || null;
+    this.styles = null;
 
-    this.width = pData.width || 'auto';
+    this.width = 'auto';
 
-    this.height = pData.height || 'auto';
+    this.height = 'auto';
 
-    this.container = pData.container || global.document.body;
+    this.container = global.document.body;
 
     this.listen('enter', onEnter);
     this.listen('leave', onLeave);
-  });
+  }
+  theatre.inherit(DOMActor, theatre.Actor);
 
   Object.defineProperties(DOMActor.prototype, /** @lends theatre.crews.dom.DOMActor# */ {
     /**
@@ -64,7 +74,8 @@
      * @default HTMLDivElement
      */
     elementTemplate: {
-      value: document.createElement('div')
+      value: document.createElement('div'),
+      writable: true
     },
 
     /**
@@ -83,7 +94,8 @@
             this.container.appendChild(tElement);
           }
         }
-      }
+      },
+      writable: true
     }
   });
 

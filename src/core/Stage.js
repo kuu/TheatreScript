@@ -11,8 +11,18 @@
 
   theatre.define('theatre.Stage', Stage);
 
-  var mRequestAnimationFrame = global.webkitRequestAnimationFrame !== void 0 ? global.webkitRequestAnimationFrame : null;
-
+  var mRequestAnimationFrame;
+  if (global.requestAnimationFrame !== void 0) {
+    mRequestAnimationFrame = global.requestAnimationFrame;
+  } else if (global.webkitRequestAnimationFrame !== void 0) {
+    mRequestAnimationFrame = global.webkitRequestAnimationFrame;
+  } else if (global.mozRequestAnimationFrame !== void 0) {
+    mRequestAnimationFrame = global.mozRequestAnimationFrame;
+  } else {
+    mRequestAnimationFrame = function(pCallback) {
+      return setTimeout(pCallback, 20);
+    };
+  }
 
   /**
    * @private
@@ -20,7 +30,9 @@
   function tickCallback(pStage) {
     var tTime = Date.now();
     pStage.step();
-    if (pStage.isOpen) pStage.timer = setTimeout(tickCallback, pStage.stepRate - (Date.now() - tTime), pStage);
+    if (pStage.isOpen) {
+      pStage.timer = setTimeout(tickCallback, pStage.stepRate - (Date.now() - tTime), pStage);
+    }
   }
 
   /**
@@ -75,14 +87,6 @@
      */
     this._invalidatedActors = new Array();
 
-    /**
-     * An instance counter for actors to create unique ID's
-     * for each Actor instance.
-     * @private
-     * @type number
-     */
-    this._actorNameCounter = 1;
-
     // Public members
 
     /**
@@ -113,11 +117,12 @@
       get: function() {
         return tStageManager;
       },
-      set: function(pValue) {
-        tStageManager = pValue;
-        pValue.initialize(null, this, 0, null, null);
-        pValue.isActing = true;
-        this.activateActor(pValue, true);
+      set: function(pStageManager) {
+        tStageManager = pStageManager;
+        pStageManager.layer = 0;
+        pStageManager.stage = this;
+        pStageManager.isActing = true;
+        this.activateActor(pStageManager, true);
       }
     });
 
@@ -149,10 +154,46 @@
       var tActor = tInvalidated[i];
       if (tActor.isInvalidated === false || tActor.stage === null) continue;
       actActorInverse(tActor);
-    };
+    }
 
     tInvalidated.length = 0;
   }
+
+  /**
+   * Converts a given time string to a step index
+   * based on the current {@link theatre.Stage#stepRate}.
+   * @param {(String|Number)} pTime The index or a time string.
+   * @param {Number} pRate The step rate to calculate against.
+   * @return {Number} A step index.
+   */
+  Stage.timeToStep = function(pTime, pRate) {
+    if (typeof pTime === 'number') {
+      return pTime;
+    }
+
+    var tResult = mTimeToStepRegex.exec(pTime);
+    if (tResult === null) {
+      throw new Error('Bad time string');
+    }
+    switch (tResult[2]) {
+      case 'ms':
+        return (tResult[1] / pRate) | 0;
+      case 's':
+        return ((tResult[1] * 1000) / pRate) | 0;
+      case 'm':
+        return ((tResult[1] * 60 * 1000) / pRate) | 0;
+    }
+
+    throw new Error('Bad time string');
+  };
+
+  /**
+   * An instance counter for actors to create unique ID's
+   * for each Actor instance.
+   * @private
+   * @type {Number}
+   */
+  Stage._actorNameCounter = 1;
 
 
   Stage.prototype = /** @lends theatre.Stage# */ {
@@ -164,22 +205,7 @@
      * @return {number} A step index.
      */
     timeToStep: function(pTime) {
-      if (typeof pTime === 'number') {
-        return pTime;
-      }
-
-      var tResult = mTimeToStepRegex.exec(pTime);
-      if (tResult === null) {
-        throw new Error('Bad time string');
-      }
-      switch (tResult[2]) {
-        case 'ms':
-          return (tResult[1] / this.stepRate) | 0;
-        case 's':
-          return ((tResult[1] * 1000) / this.stepRate) | 0;
-        case 'm':
-          return ((tResult[1] * 60 * 1000) / this.stepRate) | 0;
-      }
+      return Stage.timeToStep(pTime, this.stepRate);
     },
 
     /**
@@ -188,7 +214,9 @@
      * @return theatre.Stage This Stage.
      */
     open: function() {
-      if (this.isOpen) return;
+      if (this.isOpen) {
+        return this;
+      }
       this.isOpen = true;
       this.timer = setTimeout(tickCallback, this.stepRate, this);
       return this;
@@ -200,7 +228,9 @@
      * @return theatre.Stage This Stage.
      */
     close: function() {
-      if (!this.isOpen) return;
+      if (!this.isOpen) {
+        return this;
+      }
       clearTimeout(this.timer);
       this.timer = null;
       this.isOpen = false;
@@ -246,10 +276,12 @@
       // the current slide index on each actor.
       while (tIndex-- !== 0) {
         tActingActors = tActingActorDepths[tIndex];
-        if (!tActingActors) continue;
+        if (!tActingActors) {
+          continue;
+        }
         for (i = 0, il = tActingActors.length; i < il; i++) {
           tActingActors[i].step(1, true);
-        };
+        }
       }
 
       tIndex = tDepth;
@@ -257,25 +289,22 @@
       // Run scripts and cues on active actors.
       while (tIndex-- !== 0) {
         tActingActors = tActingActorDepths[tIndex];
-        if (!tActingActors) continue;
+        if (!tActingActors) {
+          continue;
+        }
         for (i = 0, il = tActingActors.length; i < il; i++) {
           tActingActors[i].doScripts();
-        };
+        }
       }
 
       this.cue('update');
 
       if (this._animationFrameId === null && this._invalidatedActors.length !== 0) {
-        if (mRequestAnimationFrame !== null) {
-          this._animationFrameId = mRequestAnimationFrame((function(pContext) {
-            return function() {
-              actActors.call(pContext);
-            }
-          })(this));
-        } else {
-          this._animationFrameId = 1;
-          actActors.call(this);
-        }
+        this._animationFrameId = mRequestAnimationFrame((function(pContext) {
+          return function() {
+            actActors.call(pContext);
+          }
+        })(this));
       }
 
       this.cue('leavestep');
@@ -291,7 +320,7 @@
       var tParent = pActor.parent,
       tDepth = 0;
 
-      while (tParent != null) {
+      while (tParent !== null) {
         tDepth++;
         tParent = tParent.parent;
       }
@@ -305,7 +334,9 @@
 
       if (tActingActors.indexOf(pActor) === -1) {
         tActingActors.push(pActor);
-        if (!pNoStep) pActor.step(1);
+        if (!pNoStep) {
+          pActor.step(1);
+        }
       }
     },
 
@@ -318,7 +349,7 @@
       var tParent = pActor.parent,
       tDepth = 0;
 
-      while (tParent != null) {
+      while (tParent !== null) {
         tDepth++;
         tParent = tParent.parent;
       }
@@ -368,7 +399,7 @@
             tListeners.splice(i, 1);
             break;
           }
-        };
+        }
         if (tListeners.length === 0) {
           delete this._listeners[pName];
         }
@@ -385,9 +416,11 @@
         var tListeners = this._listeners[pName].slice(0);
         for (var i = 0, il = tListeners.length; i < il; i++) {
           tListeners[i].cue(pName, pData);
-        };
+        }
       }
     }
-  }
+  };
+
+  Stage.prototype.constructor = Stage;
 
 }(this));

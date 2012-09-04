@@ -635,6 +635,33 @@
     },
     set scaleY(pValue) {
       this.matrix = this.matrix.scale(0, pValue);
+    },
+
+    /**
+     * The absolute position of this Actor on the Stage.
+     * @field
+     * @type {theatre.Matrix}
+     */
+    getAbsoluteMatrix: function() {
+      if (this.stage === null) {
+        return null;
+      }
+
+      var tMatrixStack = [this.matrix];
+      var tActor = this;
+
+      while (tActor.parent !== null) {
+        tActor = tActor.parent;
+        tMatrixStack.push(tActor.matrix);
+      }
+
+      var tMatrix = new theatre.Matrix();
+
+      for (var i = tMatrixStack.length - 1; i !== -1; i--) {
+        tMatrix = tMatrix.multiply(tMatrixStack[i]);
+      }
+
+      return tMatrix;
     }
   };
 

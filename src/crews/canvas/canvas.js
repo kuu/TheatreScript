@@ -63,7 +63,84 @@
     },
 
     /**
+     * Gets the drawing canvas context to use for
+     * drawing the given child Actor.
+     * This allows customizing each individual child
+     * Actor while drawing.
+     * @param {CanvasRenderingContext2D} pParentContext The context that the parent is currently using.
+     * @param {theatre.Actor} pActor The child Actor.
+     * @return {CanvasRenderingContext2D} The context to render to for this child.
+     */
+    getDrawingContextForChild: {
+      value: function(pParentContext, pActor) {
+        return pParentContext;
+      },
+      writable: true
+    },
+
+    /**
+     * Called just before dispatching the dispatch related
+     * functions for children.
+     * Will not be called if there are no children.
+     * @param {CanvasRenderingContext2D} pContext The context for this Actor.
+     */
+    preDrawChildren: {
+      value: function(pContext) {
+        // Do nothing. Overload this.
+      },
+      writable: true
+    },
+
+    /**
+     * Called just before dispatching the dispatch related
+     * functions for children.
+     * Will not be called if there are no children.
+     * @param {CanvasRenderingContext2D} pContext The context for this Actor.
+     */
+    postDrawChildren: {
+      value: function(pContext) {
+        // Do nothing. Overload this.
+      },
+      writable: true
+    },
+
+    /**
+     * Called right before dispatchDraw is called.
+     * @param {CanvasRenderingContext2D} pParentContext The context of this Actor.
+     * @param {CanvasRenderingContext2D} pChildContext The context of the child Actor about to be drawn.
+     * @param {theatre.Actor} pChildActor The child Actor about to be drawn.
+     */
+    preDispatchDraw: {
+      value: function(pParentContext, pChildContext, pChildActor) {
+        var tMatrix = pChildActor.matrix;
+        pParentContext.transform(
+          tMatrix.a,
+          tMatrix.b,
+          tMatrix.c,
+          tMatrix.d,
+          tMatrix.e,
+          tMatrix.f
+        );
+      },
+      writable: true
+    },
+
+    /**
+     * Called right after dispatchDraw is called.
+     * @param {CanvasRenderingContext2D} pParentContext The context of this Actor.
+     * @param {CanvasRenderingContext2D} pChildContext The context of the child Actor that was just drawn.
+     * @param {theatre.Actor} pChildActor The child Actor that was just drawn.
+     */
+    postDispatchDraw: {
+      value: function(pParentContext, pChildContext, pChildActor) {
+        // Do nothing. This is for overloading.
+      },
+      writable: true
+    },
+
+    /**
      * Dispatch a request to draw.
+     * @param {CanvasRenderingContext2D} pContext The canvas context to draw to.
      */
     dispatchDraw: {
       value: function(pContext) {
@@ -76,67 +153,48 @@
         pContext.restore();
 
         var tActors = this.getActors();
-        var tClipUntil = -1;
-        var tClipCanvas = null;
-        var tClippedCanvas = null;
-        var tClippedContext = null;
-        var tMainContext = pContext;
-        for (var i = 0, il = tActors.length; i < il; i++) {
+        var tNumOfActors = tActors.length;
+
+        if (tNumOfActors !== 0) {
+          this.preDrawChildren(pContext);
+        }
+
+        for (var i = 0; i < tNumOfActors; i++) {
           var tActor = tActors[i];
-          var tMatrix = tActor.matrix;
-          var tCurrentContext = tMainContext;
-
-          if (tActor.dispatchDraw !== void 0) {
-            if (tActor.clipDepth > 0) {
-              tClipUntil = tActor.layer + tActor.clipDepth;
-              tClipCanvas = global.document.createElement('canvas');
-              tClipCanvas.width = pContext.canvas.width;
-              tClipCanvas.height = pContext.canvas.height;
-              tClippedCanvas = global.document.createElement('canvas');
-              tClippedCanvas.width = pContext.canvas.width;
-              tClippedCanvas.height = pContext.canvas.height;
-              tCurrentContext = tClipCanvas.getContext('2d');
-              tCurrentContext.scale(0.05, 0.05);
-              tClippedContext = tClippedCanvas.getContext('2d');
-              tClippedContext.scale(0.05, 0.05);
-            } else if (!tActor.clipDepth && tActor.layer < tClipUntil) {
-              tCurrentContext = tClippedContext;
-            }
-            tCurrentContext.save();
-            tCurrentContext.transform(
-              tMatrix.a,
-              tMatrix.b,
-              tMatrix.c,
-              tMatrix.d,
-              tMatrix.e,
-              tMatrix.f
-            );
-            tActor.dispatchDraw(tCurrentContext);
-            tCurrentContext.restore();
-
-            if (tClipUntil !== -1) {
-
-              if (i === il - 1 || !tActor.clipDepth && tActor.layer >= tClipUntil) {
-                var tBackup = tCurrentContext.globalCompositeOperation;
-                tCurrentContext.globalCompositeOperation = 'destination-in';
-                tCurrentContext.save();
-                tCurrentContext.scale(20, 20);
-                tCurrentContext.drawImage(tClipCanvas, 0, 0);
-                tCurrentContext.restore();
-                tCurrentContext.globalCompositeOperation = tBackup;
-
-                tMainContext.save();
-                tMainContext.scale(20, 20);
-                tMainContext.drawImage(tClippedCanvas, 0, 0);
-                tMainContext.restore();
-
-                tClipUntil = -1;
-                tClipCanvas = null;
-                tClippedCanvas = null;
-                tClippedContext = null;
-              }
-            }
+          if (tActor.dispatchDraw === void 0) {
+            continue;
           }
+          var tChildContext = this.getDrawingContextForChild(pContext, tActor);
+
+          tChildContext.save();
+          if (tChildContext !== pContext) {
+            pContext.save();
+          }
+
+          this.preDispatchDraw(pContext, tChildContext, tActor);
+
+          tChildContext.save();
+          if (tChildContext !== pContext) {
+            pContext.save();
+          }
+
+          tActor.dispatchDraw(tChildContext);
+
+          tChildContext.restore();
+          if (tChildContext !== pContext) {
+            pContext.restore();
+          }
+
+          this.postDispatchDraw(pContext, tChildContext, tActor);
+
+          tChildContext.restore();
+          if (tChildContext !== pContext) {
+            pContext.restore();
+          }
+        }
+
+        if (tNumOfActors !== 0) {
+          this.postDrawChildren(pContext);
         }
 
         this.isInvalidated = false;

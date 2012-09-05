@@ -326,6 +326,19 @@
     },
 
     /**
+     * Goes to the given step or time in the current scene.
+     * This will execute scripts instantly in the step given
+     * in the current scene.
+     * @param {number} pStep The step to go to.
+     * @return {theatre.Actor} This Actor.
+     */
+    gotoStep: function(pStep) {
+      var tScene = this._currentScene;
+      this.step(pStep - tScene.currentStep, false);
+      return this;
+    },
+
+    /**
      * Starts acting a scene if the Actor already hasn't.
      * @param {string} pSceneName The scene to start acting.
      * @return {theatre.Actor} This Actor.

@@ -275,10 +275,12 @@
       // Only run prepared callbacks and update
       // the current slide index on each actor.
       while (tIndex-- !== 0) {
-        tActingActors = tActingActorDepths[tIndex];
-        if (!tActingActors) {
+        if (tActingActorDepths[tIndex] === void 0) {
           continue;
         }
+
+        tActingActors = tActingActorDepths[tIndex].slice(0);
+
         for (i = 0, il = tActingActors.length; i < il; i++) {
           tActingActors[i].step(1, true);
         }
@@ -288,10 +290,11 @@
 
       // Run scripts and cues on active actors.
       while (tIndex-- !== 0) {
-        tActingActors = tActingActorDepths[tIndex];
-        if (!tActingActors) {
+        if (tActingActorDepths[tIndex] === void 0) {
           continue;
         }
+        tActingActors = tActingActorDepths[tIndex].slice(0);
+
         for (i = 0, il = tActingActors.length; i < il; i++) {
           tActingActors[i].doScripts();
         }
@@ -303,7 +306,7 @@
         this._animationFrameId = mRequestAnimationFrame((function(pContext) {
           return function() {
             actActors.call(pContext);
-          }
+          };
         })(this));
       }
 

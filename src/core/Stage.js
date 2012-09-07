@@ -87,6 +87,13 @@
      */
     this._invalidatedActors = new Array();
 
+    /**
+     * Scripts that are scheduled to be executed on the next pass.
+     * @type {Array.<Function>}
+     * @private
+     */
+    this._scheduledScripts = new Array();
+
     // Public members
 
     /**
@@ -257,6 +264,14 @@
     },
 
     /**
+     * Schedules a script to be run.
+     * @param {Function} pScript
+     */
+    scheduleScript: function(pScript) {
+      this._scheduledScripts.push(pScript);
+    },
+
+    /**
      * Does a single step.
      * Progresses the whole Stage and all active Actors
      * forward by one step.
@@ -265,6 +280,12 @@
      */
     step: function() {
       var i, il, tActingActors;
+
+      var tScripts = this._scheduledScripts;
+      for (i = 0; i < tScripts.length; i++) {
+        tScripts[i]();
+      }
+      this._scheduledScripts = [];
 
       this.cue('enterstep');
 
@@ -296,9 +317,19 @@
         tActingActors = tActingActorDepths[tIndex].slice(0);
 
         for (i = 0, il = tActingActors.length; i < il; i++) {
-          tActingActors[i].doScripts();
+          tActingActors[i].scheduleScripts();
         }
       }
+
+      tScripts = this._scheduledScripts;
+      for (i = 0; i < tScripts.length; i++) {
+        tScripts[i]();
+      }
+      this._scheduledScripts = [];
+
+      tScripts = null;
+      tActingActorDepths = null;
+      tActingActors = null;
 
       this.cue('update');
 

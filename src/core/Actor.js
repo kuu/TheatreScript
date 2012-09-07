@@ -284,22 +284,21 @@
 
     /**
      * Runs the scripts of the given scene and step.
-     * @private
      * @param {number=} pStep The step to run. Default is the current step.
-     * @param {theatre.Actor} pContext The context to run the scripts from. Default context is this.
-     * @param {(string|Object)} pSceneParam The scene name or the scene itself.
+     * @param {theatre.Actor=} pContext The context to run the scripts from. Default context is this.
+     * @param {string=} pSceneName The scene name. Defaults to the current scene.
      */
-    doScripts: function(pStep, pContext, pSceneParam) {
+    doScripts: function(pStep, pContext, pSceneName) {
       var tScenes = this._scenes,
-          tScene = this._currentScene;
+          tScene;
 
-      if (!pSceneParam) {
+      if (!pSceneName) {
         tScene = this._currentScene;
-      } else if (typeof pSceneParam === 'string') {
-        if ((pSceneParam in tScenes) === false) {
-          throw new Error('Scene doesn\'t exist: ' + pSceneParam);
+      } else {
+        if ((pSceneName in tScenes) === false) {
+          throw new Error('Scene doesn\'t exist: ' + pSceneName);
         }
-        tScene = tScenes[pSceneParam];
+        tScene = tScenes[pSceneName];
       }
 
       if (typeof pStep !== 'number') {
@@ -312,13 +311,57 @@
     },
 
     /**
+     * Schedules the given scene's step's scripts to
+     * be executed. Will not be executed right away.
+     * @param {number=} pStep The step. Defaults to the current step.
+     * @param {theatre.Actor=} pContext The context to run the scripts from. Default context is this.
+     * @param {string=} pSceneName The scene. Defaults the current scene.
+     * @return {boolean} True on success. False on error.
+     */
+    scheduleScripts: function(pStep, pContext, pSceneName) {
+      if (this.stage === null) {
+        return false;
+      }
+
+      var tSelf = this;
+
+      var tScenes = this._scenes,
+          tScene;
+
+      if (!pSceneName) {
+        tScene = this._currentScene;
+      } else {
+        if ((pSceneName in tScenes) === false) {
+          return false;
+        }
+        tScene = tScenes[pSceneName];
+      }
+
+      if (typeof pStep !== 'number') {
+        pStep = tScene.currentStep;
+      }
+      if (pContext === void 0) {
+        pContext = this;
+      }
+
+      tScenes = null;
+      tScene = null;
+
+      this.stage.scheduleScript(function() {
+        tSelf.doScripts(pStep, pContext, pSceneName);
+      });
+    },
+
+    /**
      * Makes the Actor start acting and playing
      * it's scripts.
      * @return {theatre.Actor} This Actor.
      */
     startActing: function() {
-      this.stage.activateActor(this);
-      this.isActing = true;
+      if (this.isActing === false) {
+        this.stage.activateActor(this);
+        this.isActing = true;
+      }
       return this;
     },
 
@@ -328,8 +371,10 @@
      * @return {theatre.Actor} This Actor.
      */
     stopActing: function() {
-      this.stage.deactivateActor(this);
-      this.isActing = false;
+      if (this.isActing === true) {
+        this.stage.deactivateActor(this);
+        this.isActing = false;
+      }
       return this;
     },
 
@@ -347,7 +392,7 @@
       }
       this.startActingScene(pSceneName);
       var tScene = this._currentScene;
-      if (tScene.currentStep + pStep >= tScene.length) {
+      if (pStep >= tScene.length) {
         return null;
       }
       if (pStep === tScene.currentStep) {
@@ -366,7 +411,7 @@
      */
     gotoStep: function(pStep) {
       var tScene = this._currentScene;
-      if (tScene.currentStep + pStep >= tScene.length) {
+      if (pStep >= tScene.length) {
         return null;
       }
       if (pStep === tScene.currentStep) {
@@ -393,7 +438,7 @@
       var tScene = this._currentScene;
       var tStep = tScene.labels[pName];
 
-      if (tStep === void 0 || tScene.currentStep + tStep >= tScene.length) {
+      if (tStep === void 0 || tStep >= tScene.length) {
         return null;
       }
 
@@ -416,7 +461,7 @@
       var tScene = this._currentScene;
       var tStep = tScene.labels[pName];
 
-      if (tStep === void 0 || tScene.currentStep + tStep >= tScene.length) {
+      if (tStep === void 0 || tStep >= tScene.length) {
         return null;
       }
 
@@ -456,6 +501,23 @@
       }
       delete this._scenes[pSceneName].labels[pName];
       return this;
+    },
+
+    /**
+     * Gets a label's step index previously set with setLabelInScene.
+     * @param {string} pSceneName The scene name.
+     * @param {string} pName The name of the label to get.
+     * @return {number|null} The step or null if the label doesn't exist.
+     */
+    getLabelStepFromScene: function(pSceneName, pName) {
+      if ((pSceneName in this._scenes) === false) {
+        return null;
+      }
+      var tStep = this._scenes[pSceneName].labels[pName];
+      if (tStep === void 0) {
+        return null;
+      }
+      return tStep;
     },
 
     /**
@@ -517,7 +579,7 @@
       if (tPreviousStep === tCurrentStep) {
         if (tLooped === true && !pPreparedScriptsOnly) {
           executeScripts(this, tScripts[0], tCurrentStep);
-          executeScripts(this, tScripts[1], tCurrentStep);
+          this.scheduleScripts(tCurrentStep, this);
         }
       } else if (pDelta < 0 || tLooped === true) {
         // TODO: Make this smart with a diff. Need to handle all things made in a prepared script...
@@ -535,10 +597,7 @@
       }
 
       if (!pPreparedScriptsOnly) {
-        executeScripts(this, tScripts[1], tCurrentStep);
-      }
-
-      if (!pPreparedScriptsOnly) {
+        this.scheduleScripts(tCurrentStep, this);
         this.cue('update');
       }
     },
@@ -546,7 +605,7 @@
     /**
      * Adds a new Actor of the given type to the Stage as a child of
      * this Actor.
-     * @param {function(new:theatre.Actor)} pActor The Actor to add.
+     * @param {theatre.Actor} pActor The Actor to add.
      * @param {Object=} pOptions Options.
      * @return {theatre.Actor} This Actor.
      * @todo Make a sorted dictionary, not a massive array.
@@ -570,7 +629,7 @@
         throw new Error('Actor already exists at layer ' + tLayer);
       }
 
-      var tName = typeof pOptions.name === 'string' ? pOptions.name : 'instance' + theatre.Stage._actorNameCounter++;
+      var tName = typeof pOptions.name === 'string' ? pOptions.name : (pActor.name ? pActor.name : 'instance' + theatre.Stage._actorNameCounter++);
 
       var tStage = this.stage;
 

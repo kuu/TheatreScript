@@ -1,6 +1,6 @@
 /**
  * @author Jason Parrott
- * 
+ *
  * Copyright (C) 2012 Jason Parrott.
  * This code is licensed under the zlib license. See LICENSE for details.
  */
@@ -21,6 +21,7 @@
     this._drawingCache = null;
     this.width = 0;
     this.height = 0;
+    this.cacheDrawResult = true;
 
     this.listen('enter', function(pData) {
       this.invalidate();
@@ -208,7 +209,7 @@
     act: {
       value: function() {
         this.dispatchDraw();
-        
+
         if (this.isAdded !== true) {
           this.isAdded = true;
           if (theatre.crews.dom && this.parent instanceof theatre.crews.dom.DOMActor) {

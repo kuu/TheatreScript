@@ -63,6 +63,7 @@
           "type": "files",
           "root": "src/crews/canvas",
           "files": [
+            "cache.js",
             "canvas.js"
           ]
         }

@@ -9,6 +9,12 @@
 
   var theatre = global.theatre;
 
+  var mCache = new theatre.crews.canvas.Cache();
+
+  theatre.define('theatre.crews.canvas.CanvasActor', CanvasActor);
+
+  theatre.crews.canvas.backingCache = mCache;
+
   /**
    * An Actor for working with a 2d canvas.
    * @constructor
@@ -22,6 +28,7 @@
     this.width = 0;
     this.height = 0;
     this.cacheDrawResult = true;
+    this.cacheWithClass = true;
 
     this.listen('enter', function(pData) {
       this.invalidate();
@@ -31,23 +38,35 @@
 
   Object.defineProperties(CanvasActor.prototype, /** @lends theatre.crews.dom.CanvasActor# */ {
 
+    _classDrawingCache: {
+      value: null,
+      writable: true
+    },
+
     /**
-     * Get's or creates a drawing cache that can
-     * be used to draw on and stored permanently.
-     * @return {CanvasRenderingContext2D} The cache.
+     * Called before draw() is called.
+     * This will get called even when redrawing cache.
+     * Therefore you should not do anything heavy in here.
+     * The context passed here will always be the same as this Actors parent.
+     * @param {CanvasRenderingContext2D} pContext The rendering context.
      */
-    getDrawingCache: {
-      value: function() {
-        if (this._drawingCache !== null) {
-          return this._drawingCache;
-        }
+    preDraw: {
+      value: function(pContext) {
+        // Do nothing by default
+      },
+      writable: true
+    },
 
-        var tCanvas = global.document.createElement('canvas');
-
-        tCanvas.width = this.width || this.parent.width || 1;
-        tCanvas.height = this.height || this.parent.height || 1;
-
-        return this._drawingCache = tCanvas.getContext('2d');
+    /**
+     * Called after draw() is called.
+     * This will get called even when redrawing cache.
+     * Therefore you should not do anything heavy in here.
+     * The context passed here will always be the same as this Actors parent.
+     * @param {CanvasRenderingContext2D} pContext The rendering context.
+     */
+    postDraw: {
+      value: function(pContext) {
+        // Do nothing by default
       },
       writable: true
     },
@@ -139,19 +158,81 @@
       writable: true
     },
 
+    getDrawingCacheId: {
+      value: function() {
+        var tCacheId = null;
+
+        if (this.cacheDrawResult === true) {
+          if (this.cacheWithClass === true) {
+            if (this.__proto__._classDrawingCache !== null) {
+              tCacheId = this.__proto__._classDrawingCache;
+            } else {
+              tCacheId = this.__proto__._classDrawingCache = mCache.request(
+                this.width || this.parent.width || 0,
+                this.height || this.parent.height || 0
+              );
+            }
+          } else {
+            if (this._drawingCache !== null) {
+              tCacheId = this._drawingCache;
+            } else {
+              this._drawingCache = tCacheId = mCache.request(
+                this.width || this.parent.width || 0,
+                this.height || this.parent.height || 0
+              );
+            }
+          }
+        }
+
+        return tCacheId;
+      },
+      writable: true
+    },
+
     /**
      * Dispatch a request to draw.
      * @param {CanvasRenderingContext2D} pContext The canvas context to draw to.
      */
     dispatchDraw: {
       value: function(pContext) {
-        if (!pContext && this.parent.dispatchDraw === void 0) {
-          pContext = this.getDrawingCache();
-        }
+        var tCacheId = this.getDrawingCacheId();
 
-        pContext.save();
-        this.draw(pContext);
-        pContext.restore();
+        if (tCacheId !== null) {
+          if (!pContext) {
+            pContext = mCache.getContext(tCacheId);
+            if (this.isInvalidated === true) {
+              pContext.save();
+              this.preDraw(pContext);
+              this.draw(pContext);
+              this.postDraw(pContext);
+              pContext.restore();
+            }
+          } else {
+            if (this.isInvalidated === false) {
+              pContext.save();
+              this.preDraw(pContext);
+              mCache.drawOnTo(tCacheId, pContext, 0, 0);
+              this.postDraw(pContext);
+              pContext.restore();
+            } else {
+              pContext.save();
+              this.preDraw(pContext);
+              this.draw(mCache.getContext(tCacheId));
+              mCache.drawOnTo(tCacheId, pContext, 0, 0);
+              this.postDraw(pContext);
+              pContext.restore();
+            }
+          }
+        } else {
+          if (!pContext) {
+            return;
+          }
+          pContext.save();
+          this.preDraw(pContext);
+          this.draw(pContext);
+          this.postDraw(pContext);
+          pContext.restore();
+        }
 
         var tActors = this.getActors();
         var tNumOfActors = tActors.length;
@@ -213,8 +294,9 @@
         if (this.isAdded !== true) {
           this.isAdded = true;
           if (theatre.crews.dom && this.parent instanceof theatre.crews.dom.DOMActor) {
-            this._drawingCache.canvas.style.zIndex = this.layer;
-            this.parent.element.appendChild(this._drawingCache.canvas);
+            var tCanvas = mCache.getContext(this._drawingCache).canvas;
+            tCanvas.style.zIndex = this.layer;
+            this.parent.element.appendChild(tCanvas);
           }
         }
       },
@@ -234,7 +316,5 @@
       writable: true
     }
   });
-
-  theatre.define('theatre.crews.canvas.CanvasActor', CanvasActor);
 
 })(this);

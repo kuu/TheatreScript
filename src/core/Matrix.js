@@ -62,12 +62,12 @@
     var tThatE = pThat.e;
     var tThatF = pThat.f;
 
-    tMatrix.a = tThisA * tThatA + tThisB * tThatC;
+    tMatrix.a = tThisA * tThatA + tThisC * tThatB;
     tMatrix.b = tThisA * tThatB + tThisB * tThatD;
-    tMatrix.c = tThisC * tThatA + tThisD * tThatC;
-    tMatrix.d = tThisC * tThatB + tThisD * tThatD;
-    tMatrix.e = tThisE * tThatA + tThisF * tThatC + tThatE;
-    tMatrix.f = tThisE * tThatB + tThisF * tThatD + tThatF;
+    tMatrix.c = tThisA * tThatC + tThisC * tThatD;
+    tMatrix.d = tThisD * tThatD + tThisB * tThatC;
+    tMatrix.e = tThisA * tThatE + tThisC * tThatF + tThisE;
+    tMatrix.f = tThisB * tThatE + tThisD * tThatF + tThisF;
 
     return tMatrix;
   };
@@ -77,7 +77,14 @@
   };
 
   TheatreMatrix.prototype.translate = function(pX, pY) {
-    return this.multiply(1, 0, 0, 1, pX, pY);
+    return this.multiply({
+      a: 1,
+      b: 0,
+      c: 0,
+      d: 1,
+      e: pX,
+      f: pY
+    });
   };
 
   TheatreMatrix.prototype.rotate = function(pX, pY) {
@@ -89,7 +96,14 @@
   };
 
   TheatreMatrix.prototype.scale = function(pX, pY) {
-    return this.multiply(pX, 0, 0, pY, 0, 0);
+    return this.multiply({
+      a: pX,
+      b: 0,
+      c: 0,
+      d: pY,
+      e: 0,
+      f: 0
+    });
   };
 
   TheatreMatrix.prototype.setMatrixValue = function(pValue) {
@@ -103,11 +117,25 @@
   };
 
   TheatreMatrix.prototype.skewX = function(pValue) {
-    return this.multiply(1, 0, pValue, 1, 0, 0);
+    return this.multiply({
+      a: 1,
+      b: 0,
+      c: pValue,
+      d: 1,
+      e: 0,
+      f: 0
+    });
   };
 
   TheatreMatrix.prototype.skewY = function(pValue) {
-    return this.multiply(1, pValue, 0, 1, 0, 0);
+    return this.multiply({
+      a: 1,
+      b: pValue,
+      c: 0,
+      d: 1,
+      e: 0,
+      f: 0
+    });
   };
 
   TheatreMatrix.prototype.toString = function() {

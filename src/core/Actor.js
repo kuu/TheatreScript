@@ -1,6 +1,6 @@
 /**
  * @author Jason Parrott
- * 
+ *
  * Copyright (C) 2012 Jason Parrott.
  * This code is licensed under the zlib license. See LICENSE for details.
  */
@@ -615,7 +615,7 @@
       if (pActor._ctorCalled !== true) {
         throw new Error('Actor not initialized correctly. Call this.base.constructor() first.');
       }
-      
+
       if (pActor.stage !== null) {
         throw new Error('Actor already belongs to another Actor.');
       }
@@ -728,6 +728,7 @@
           var tChild = tChildren[i];
           pActor.stage.deactivateActor(tChild); // TODO: How to reactivate afterwards?
           recursivelyDeactivate(tChild);
+          tChild.isActing = false;
 
           var tActorCues = tChild._cues;
           if (tActorCues !== void 0) {
@@ -744,6 +745,7 @@
         recursivelyDeactivate(this);
 
         this.stage.deactivateActor(this);
+        this.isActing = false;
 
         var tActorCues = this._cues;
         if (tActorCues !== void 0) {

@@ -1,6 +1,6 @@
 /**
  * @author Jason Parrott
- * 
+ *
  * Copyright (C) 2012 Jason Parrott.
  * This code is licensed under the zlib license. See LICENSE for details.
  */
@@ -11,14 +11,20 @@
 
   function onEnter(pData) {
     pData = pData.data;
-    this.styles = pData.styles || null;
+    var tProtoStyles = this.styles;
+
+    if (pData.styles) {
+      for (var k in pData.styles) {
+        tProtoStyles[k] = pData.styles[k];
+      }
+    }
+
     this.width = pData.width || 'auto';
     this.height = pData.height || 'auto';
     this.container = pData.container || global.document.body;
 
     var tElement = this.element = this.elementTemplate.cloneNode(true);
     var tStyle = tElement.style;
-    var tProtoStyles = this.styles;
 
     tStyle.zIndex = this.layer;
     tStyle.position = 'absolute';
@@ -54,7 +60,7 @@
      * @type Object
      * @default null
      */
-    this.styles = null;
+    this.styles = {};
 
     this.width = 'auto';
 

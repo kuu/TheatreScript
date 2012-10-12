@@ -411,7 +411,7 @@
      * @param {string} pName The type of cue.
      * @param {function} pListener The listener.
      */
-    registerListener: function(pName, pListener) {
+    listen: function(pName, pListener) {
       if (!(pName in this._listeners)) {
         this._listeners[pName] = [pListener];
       } else {
@@ -425,7 +425,7 @@
      * @param {string} pName The type of cue.
      * @param {function} pListener The listener.
      */
-    unregisterListener: function(pName, pListener) {
+    ignore: function(pName, pListener) {
       if ((pName in this._listeners)) {
         var tListeners = this._listeners[pName];
         for (var i = 0, il = tListeners.length; i < il; i++) {
@@ -449,7 +449,12 @@
       if (pName in this._listeners) {
         var tListeners = this._listeners[pName].slice(0);
         for (var i = 0, il = tListeners.length; i < il; i++) {
-          tListeners[i].cue(pName, pData);
+          var tListener = tListeners[i];
+          if (tListener.cue !== void 0) {
+            tListener.cue(pName, pData);
+          } else {
+            tListener.call(this, pName, pData);
+          }
         }
       }
     }

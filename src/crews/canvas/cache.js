@@ -59,6 +59,8 @@
    * @return {string|null} The cache ID or null.
    */
   Cache.prototype.request = function(pWidth, pHeight) {
+    pWidth = (pWidth >>> 0) || 1;
+    pHeight = (pHeight >>> 0) || 1;
     var tDeltaSize = pWidth * pHeight;
     var tUsedSize = this.usedSize;
     var tNewSize = tUsedSize + tDeltaSize;

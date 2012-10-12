@@ -31,6 +31,12 @@
     this.cacheWithClass = true;
 
     this.listen('enter', function(pData) {
+      if (this.width === 0) {
+        this.width = this.parent.width || 1;
+      }
+      if (this.height === 0) {
+        this.height = this.parent.height || 1;
+      }
       this.invalidate();
     });
   }

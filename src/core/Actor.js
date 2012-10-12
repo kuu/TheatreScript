@@ -1,6 +1,6 @@
 /**
  * @author Jason Parrott
- * 
+ *
  * Copyright (C) 2012 Jason Parrott.
  * This code is licensed under the zlib license. See LICENSE for details.
  */
@@ -183,7 +183,7 @@
       if ((pName in this._cues) === false) {
         this._cues[pName] = [pCallback];
         if (this.stage !== null) {
-          this.stage.registerListener(pName, this);
+          this.stage.listen(pName, this);
         }
       } else {
         this._cues[pName].push(pCallback);
@@ -209,7 +209,7 @@
         if (tCues.length === 0) {
           delete this._cues[pName];
           if (this.stage !== null) {
-            this.stage.unregisterListener(pName, this);
+            this.stage.listen(pName, this);
           }
         }
       }
@@ -530,10 +530,16 @@
         throw new Error('Scene doesn\'t exist: ' + pSceneName);
       }
       if (this._currentScene.name === pSceneName) return this;
+
+      var tChildren = this.getActors();
+      for (var i = 0, il = tChildren.length; i < il; i++) {
+        tChildren[i].leave();
+      }
+
       this._currentScene.isActing = false;
       var tScene = this._scenes[pSceneName];
-      tScene.isActing = true;
       this._currentScene = tScene;
+      this.startActing();
       return this;
     },
 
@@ -615,7 +621,7 @@
       if (pActor._ctorCalled !== true) {
         throw new Error('Actor not initialized correctly. Call this.base.constructor() first.');
       }
-      
+
       if (pActor.stage !== null) {
         throw new Error('Actor already belongs to another Actor.');
       }
@@ -647,7 +653,7 @@
         var tActorCues = pActor._cues;
         if (tActorCues !== void 0) {
           for (var k in tActorCues) {
-            tStage.registerListener(k, pActor);
+            tStage.listen(k, pActor);
           }
         }
 
@@ -732,7 +738,7 @@
           var tActorCues = tChild._cues;
           if (tActorCues !== void 0) {
             for (var k in tActorCues) {
-              tChild.stage.unregisterListener(k, tChild);
+              tChild.stage.ignore(k, tChild);
             }
           }
 
@@ -748,7 +754,7 @@
         var tActorCues = this._cues;
         if (tActorCues !== void 0) {
           for (var i in tActorCues) {
-            this.stage.unregisterListener(i, this);
+            this.stage.ignore(i, this);
           }
         }
       }

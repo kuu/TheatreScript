@@ -1,7 +1,7 @@
 /**
  * @author Jason Parrott
  *
- * Copyright (C) 2012 Jason Parrott.
+ * Copyright (C) 2012 TheatreScript Project.
  * This code is licensed under the zlib license. See LICENSE for details.
  */
 
@@ -69,30 +69,31 @@
      * @private
      * @type Array.<theatre.Actor>
      */
-    this._actingActors = new Array();
+    this._actingActors = [];
 
     /**
      * An overall map of event listeners.
      * @private
      * @type Object
      */
-    this._listeners = new Object();
+    this._listeners = {};
 
     /**
-     * Actors that need to be rendered.
-     * These actors have had their {@link theatre.Actor#invalidate}
-     * function called in the current step.
+     * Functions to be called in the animation frame.
+     * These functions have had their {@link theatre.Actor#schedule}
+     * function called in the current step or were added via
+     * {@link theatre.Stage#schedule}.
      * @private
-     * @type Array.<theatre.Actor>
+     * @type {Array.<function>}
      */
-    this._invalidatedActors = new Array();
+    this._scheduledFunctions = [];
 
     /**
      * Scripts that are scheduled to be executed on the next pass.
      * @type {Array.<Function>}
      * @private
      */
-    this._scheduledScripts = new Array();
+    this._scheduledScripts = [];
 
     // Public members
 
@@ -138,32 +139,26 @@
 
 
   /**
-   * @todo Is there a way to make this smarter?...
    * @private
    * @this {theatre.Stage}
    */
-  function actActors() {
+  function runScheduledFunctions() {
+    var i, il;
+    var tScheduledFunctions = this._scheduledFunctions.splice(0, this._scheduledFunctions.length);
+
     this._animationFrameId = null;
-    var tInvalidated = this._invalidatedActors;
 
-    function actActorInverse(pActor) {
-      var tParent = pActor.parent;
-      if (tParent !== null && tParent.isInvalidated === true) {
-        actActorInverse(tParent);
-      }
-      if (pActor.isInvalidated === true) {
-        pActor.act();
-        pActor.isInvalidated = false;
-      }
+    for (i = 0, il = tScheduledFunctions.length; i < il; i++) {
+      tScheduledFunctions[i].call(this);
     }
 
-    for (var i = 0, il = tInvalidated.length; i < il; i++) {
-      var tActor = tInvalidated[i];
-      if (tActor.isInvalidated === false || tActor.stage === null) continue;
-      actActorInverse(tActor);
+    if (this._animationFrameId === null && this._scheduledFunctions.length > 0) {
+      this._animationFrameId = mRequestAnimationFrame((function(pContext) {
+        return function() {
+          runScheduledFunctions.call(pContext);
+        };
+      })(this));
     }
-
-    tInvalidated.length = 0;
   }
 
   /**
@@ -246,21 +241,20 @@
 
     /**
      * Adds an Actor to this Stage's StageManager.
-     * @param {function(new:theatre.Actor)} pClazz The Actor type to add.
+     * @param {theatre.Actor} pActor The Actor to add.
      * @param {Object=} pOptions Options.
      * @return {theatre.Actor} The new Actor.
      */
-    addActor: function(pClazz, pOptions) {
-      return this.stageManager.addActor(pClazz, pOptions);
+    addActor: function(pActor, pOptions) {
+      return this.stageManager.addActor(pActor, pOptions);
     },
 
     /**
-     * Invalidates an Actor.
-     * @private
+     * Schedules a function to run in the animation frame.
      * @param {theatre.Actor} pActor
      */
-    invalidate: function(pActor) {
-      this._invalidatedActors.push(pActor);
+    schedule: function(pFunction) {
+      this._scheduledFunctions.push(pFunction);
     },
 
     /**
@@ -280,8 +274,8 @@
      */
     step: function() {
       var i, il, tActingActors;
-
       var tScripts = this._scheduledScripts;
+
       for (i = 0; i < tScripts.length; i++) {
         tScripts[i]();
       }
@@ -333,10 +327,10 @@
 
       this.cue('update');
 
-      if (this._animationFrameId === null && this._invalidatedActors.length !== 0) {
+      if (this._animationFrameId === null && this._scheduledFunctions.length !== 0) {
         this._animationFrameId = mRequestAnimationFrame((function(pContext) {
           return function() {
-            actActors.call(pContext);
+            runScheduledFunctions.call(pContext);
           };
         })(this));
       }
@@ -398,20 +392,12 @@
     },
 
     /**
-     * Sets the background of the Stage.
-     * @param {string} pBackground
-     */
-    setBackground: function(pBackground) {
-      this.background = pBackground;
-    },
-
-    /**
      * Registers the given listener for the given cue type.
      * @private
      * @param {string} pName The type of cue.
      * @param {function} pListener The listener.
      */
-    listen: function(pName, pListener) {
+    on: function(pName, pListener) {
       if (!(pName in this._listeners)) {
         this._listeners[pName] = [pListener];
       } else {

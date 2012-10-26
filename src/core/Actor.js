@@ -1,7 +1,7 @@
 /**
  * @author Jason Parrott
  *
- * Copyright (C) 2012 Jason Parrott.
+ * Copyright (C) 2012 TheatreScript Project.
  * This code is licensed under the zlib license. See LICENSE for details.
  */
 
@@ -9,9 +9,47 @@
 
   var theatre = global.theatre,
       Matrix = theatre.Matrix,
-      max = global.Math.max;
+      max = global.Math.max,
+      TreeNode = theatre.TreeNode;
 
   theatre.define('theatre.Actor', Actor);
+
+
+  TreeNode.registerSimpleProcess('onActorEnter', function() {
+    var tActor = this.actor;
+    var tActorCues = tActor._cues;
+    var tStage = tActor.stage = tActor.parent.stage;
+
+    if (tActorCues !== void 0) {
+      for (var k in tActorCues) {
+        tStage.on(k, tActor);
+      }
+    }
+
+    tActor.invalidate();
+
+    tActor.cue('enter');
+    tActor.startActing();
+  });
+
+  TreeNode.registerSimpleProcess('onActorLeave', function() {
+    var tActor = this.actor;
+    var tStage = tActor.stage;
+
+    tActor.cue('leave');
+
+    tStage.deactivateActor(tActor);
+    tActor.isActing = false;
+
+    var tActorCues = tActor._cues;
+    if (tActorCues !== void 0) {
+      for (var k in tActorCues) {
+        tStage.ignore(k, tActor);
+      }
+    }
+
+    tActor.stage = null;
+  });
 
   /**
    * @constructor
@@ -62,31 +100,10 @@
     this.layer = -1;
 
     /**
-     * The parent of this Actor
-     * @type {theatre.Actor}
+     * Reference to the TreeNode this Actor belongs to.
+     * @type {theatre.TreeNode}
      */
-    this.parent = null;
-
-    /**
-     * Child actors.
-     * @private
-     * @type {Array.<theatre.Actor>}
-     */
-    this._actors = new Array(0);
-
-    /**
-     * The name of this Actor
-     * @private
-     * @type {string}
-     */
-    this._name = null;
-
-    /**
-     * A map of child Actor names to child Actors.
-     * @type {Object.<string, theatre.Actor>}
-     * @private
-     */
-    this._nameToActorMap = {};
+    this.treeNode = new TreeNode(this);
 
     /**
      * True if this Actor is currently active.
@@ -101,6 +118,33 @@
      * @default false
      */
     this.isInvalidated = false;
+
+    /**
+     * The parent of this Actor
+     * @type {theatre.Actor}
+     */
+    this.parent = null;
+
+    /**
+     * Maps layers to child Actors
+     * @private
+     * @type {Object.<string, theatre.Actor>}
+     */
+    this._layerToActorMap = {};
+
+    /**
+     * The name of this Actor
+     * @private
+     * @type {string}
+     */
+    this._name = null;
+
+    /**
+     * A map of child Actor names to child Actors.
+     * @type {Object.<string, theatre.Actor>}
+     * @private
+     */
+    this._nameToActorMap = {};
 
     /**
      * @private
@@ -121,6 +165,13 @@
      * @type {number}
      */
     this._layerCounter = 0;
+
+    /**
+     * Holds the props that this Actor is holding.
+     * @private
+     * @type {Object.<string, theatre.Prop>}
+     */
+    this._props = {};
   }
 
   /**
@@ -176,14 +227,14 @@
      * @param {function} pCallback The callback.
      * @return {theatre.Actor} This Actor.
      */
-    listen: function(pName, pCallback) {
+    on: function(pName, pCallback) {
       if (('_cues' in this) === false) {
         this._cues = new Object();
       }
       if ((pName in this._cues) === false) {
         this._cues[pName] = [pCallback];
         if (this.stage !== null) {
-          this.stage.listen(pName, this);
+          this.stage.on(pName, this);
         }
       } else {
         this._cues[pName].push(pCallback);
@@ -209,7 +260,7 @@
         if (tCues.length === 0) {
           delete this._cues[pName];
           if (this.stage !== null) {
-            this.stage.listen(pName, this);
+            this.stage.ignore(pName, this);
           }
         }
       }
@@ -239,17 +290,33 @@
     /**
      * Invalidates this Actor, causing it's {@link theatre.Actor#act}
      * function to be called this or next step.
-     * @return {theatre.Actor} This Actor.
      */
     invalidate: function() {
-      if (this.isInvalidated === true) {
-        return this;
+      this.cue('invalidate');
+    },
+
+    /**
+     * Schedules this actor to act it's act function
+     * in the next animation frame.
+     */
+    schedule: function() {
+      if (this.stage === null) {
+        return;
       }
-      this.isInvalidated = true;
-      if (this.stage !== null) {
-        this.stage.invalidate(this);
-      }
-      return this;
+
+      var tActor = this;
+
+      this.stage.schedule(function() {
+        tActor.act();
+      });
+    },
+
+    /**
+     * Called via schedule.
+     * Act your Actor inside the animation frame.
+     */
+    act: function() {
+      // Do nothing. Override this.
     },
 
     /**
@@ -350,6 +417,66 @@
       this.stage.scheduleScript(function() {
         tSelf.doScripts(pStep, pContext, pSceneName);
       });
+    },
+
+    /**
+     * Adds a prop to this Actor.
+     * @param {theatre.Prop} pProp The prop to add
+     */
+    addProp: function(pProp) {
+      if (!pProp.type) {
+        throw new Error('Type not set on Prop');
+      }
+
+      var tProps = this._props[pProp.type] || (this._props[pProp.type] = []);
+
+      tProps.push(pProp);
+
+      pProp.onAdd(this);
+    },
+
+    /**
+     * Removes a prop from this Actor.
+     * @param  {theatre.Prop} pProp The prop to remove
+     */
+    removeProp: function(pProp) {
+      if (!pProp.type) {
+        throw new Error('Type not set on Prop');
+      }
+
+      var tProps = this._props[pProp.type];
+      var tIndex;
+
+      if (tProps === void 0) {
+        return;
+      }
+
+      tIndex = tProps.indexOf(pProp);
+
+      if (tIndex !== -1) {
+        pProp.onRemove();
+
+        tProps.splice(tIndex, 1);
+        if (tProps.length === 0) {
+          delete this._props[pProp.type];
+        }
+      }
+    },
+
+    /**
+     * Get's an array of props of the given type that
+     * this Actor owns.
+     * @param {string} pType The type of prop.
+     * @return {Array.<theatre.Prop>} The props.
+     */
+    getProps: function(pType) {
+      var tProps = this._props[pType];
+
+      if (tProps === void 0) {
+        return [];
+      }
+
+      return tProps.slice(0);
     },
 
     /**
@@ -544,14 +671,6 @@
     },
 
     /**
-     * Called when an Actor is invalid.
-     * All updates and cues should be complete by the time
-     * this executes.
-     * Do your rendering in here.
-     */
-    act: function() {},
-
-    /**
      * Steps through scene scripts by the delta provided.
      * @private
      * @param {number} pDelta
@@ -612,12 +731,16 @@
      * Adds a new Actor of the given type to the Stage as a child of
      * this Actor.
      * @param {theatre.Actor} pActor The Actor to add.
-     * @param {Object=} pOptions Options.
+     * @param {number=} pLayer The layer to add to or auto.
      * @return {theatre.Actor} This Actor.
      * @todo Make a sorted dictionary, not a massive array.
      * @todo Make the layer counter smart.
      */
-    addActor: function(pActor, pOptions) {
+    addActor: function(pActor, pLayer) {
+      var tName;
+      var tStage = this.stage;
+      var tNode = pActor.treeNode;
+
       if (pActor._ctorCalled !== true) {
         throw new Error('Actor not initialized correctly. Call this.base.constructor() first.');
       }
@@ -626,54 +749,27 @@
         throw new Error('Actor already belongs to another Actor.');
       }
 
-      pOptions = pOptions || new Object();
+      pLayer = typeof pLayer === 'number' ? pLayer : this._layerCounter++;
 
-      var tLayer = typeof pOptions.layer === 'number' ? pOptions.layer : this._layerCounter++;
-      var tActors = this._actors;
+      pActor.layer = pLayer;
 
-      if (tActors[tLayer] !== void 0) {
-        throw new Error('Actor already exists at layer ' + tLayer);
+      if (!this.treeNode.appendChild(tNode)) {
+        throw new Error('Actor already exists at layer ' + pLayer);
       }
 
-      var tName = typeof pOptions.name === 'string' ? pOptions.name : (pActor.name ? pActor.name : 'instance' + theatre.Stage._actorNameCounter++);
-
-      var tStage = this.stage;
-
-      tActors[tLayer] = pActor;
       pActor.stage = tStage;
-      pActor.layer = tLayer;
-      pActor.name = tName;
       pActor.parent = this;
 
-      this._nameToActorMap[pActor.name] = pActor;
-
-      function recursiveEnter(pActor) {
-        pActor.stage = tStage;
-
-        var tActorCues = pActor._cues;
-        if (tActorCues !== void 0) {
-          for (var k in tActorCues) {
-            tStage.listen(k, pActor);
-          }
-        }
-
-        if (pActor.isInvalidated === true) {
-          tStage.invalidate(pActor);
-        }
-        pActor.cue('enter', pActor._pendingAddActorOptions);
-        pActor._pendingAddActorOptions = null;
-        pActor.startActing();
-        var tChildren = pActor.getActors();
-        for (var i = 0, il = tChildren.length; i < il; i++) {
-          recursiveEnter(tChildren[i]);
-        }
+      if (pActor._name === null) {
+        pActor.name = 'instance' + theatre.Stage._actorNameCounter++;
+      } else {
+        this._nameToActorMap[pActor._name] = pActor;
       }
 
-      if (this.stage !== null) {
-        pActor._pendingAddActorOptions = pOptions;
-        recursiveEnter(pActor);
-      } else {
-        pActor._pendingAddActorOptions = pOptions;
+      this._layerToActorMap['' + pLayer] = pActor;
+
+      if (tStage !== null) {
+        tNode.processTopDown('onActorEnter');
       }
 
       return this;
@@ -685,15 +781,15 @@
      * @return {Array.<theatre.Actor>} An array of Actors.
      */
     getActors: function() {
-      var tResult = new Array(),
-          tActors = this._actors;
+      var tChildNodes = this.treeNode.childNodes;
+      var tLength = tChildNodes.length;
+      var tActors = new Array(tLength);
 
-      for (var i = 0, il = tActors.length; i < il; i++) {
-        if (tActors[i] !== void 0) {
-          tResult.push(tActors[i]);
-        }
+      for (var i = 0; i < tLength; i++) {
+        tActors[i] = tChildNodes[i].actor;
       }
-      return tResult;
+
+      return tActors;
     },
 
     /**
@@ -703,7 +799,7 @@
      * @return {theatre.Actor|null} The Actor or null.
      */
     getActorAtLayer: function(pLayer) {
-      return this._actors[pLayer] || null;
+      return this._layerToActorMap['' + pLayer] || null;
     },
 
     /**
@@ -720,51 +816,22 @@
      * Removes this Actor from it's parent.
      */
     leave: function() {
+      var tNode = this.treeNode;
+
       if (this.parent === null) {
         return;
       }
-      if (this.parent._actors[this.layer] !== this) {
-        return;
-      }
-      this.cue('leave');
-
-      function recursivelyDeactivate(pActor) {
-        var tChildren = pActor.getActors();
-        for (var i = 0, il = tChildren.length; i < il; i++) {
-          var tChild = tChildren[i];
-          pActor.stage.deactivateActor(tChild); // TODO: How to reactivate afterwards?
-          recursivelyDeactivate(tChild);
-          tChild.isActing = false;
-
-          var tActorCues = tChild._cues;
-          if (tActorCues !== void 0) {
-            for (var k in tActorCues) {
-              tChild.stage.ignore(k, tChild);
-            }
-          }
-
-          tChild.stage = null;
-        }
-      }
 
       if (this.stage !== null) {
-        recursivelyDeactivate(this);
-
-        this.stage.deactivateActor(this);
-        this.isActing = false;
-
-        var tActorCues = this._cues;
-        if (tActorCues !== void 0) {
-          for (var i in tActorCues) {
-            this.stage.ignore(i, this);
-          }
-        }
+        tNode.processBottomUp('onActorLeave');
       }
 
-      this.parent._actors[this.layer] = void 0;
+      tNode.parentNode.removeChild(tNode);
+
+      delete this.parent._layerToActorMap['' + this.layer];
       delete this.parent._nameToActorMap[this.name];
+
       this.parent = null;
-      this.stage = null;
     },
 
     /**

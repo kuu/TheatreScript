@@ -16,8 +16,6 @@
       var random = Math.random;
       var mContainer = document.getElementById('container');
 
-      mContainer.width = window.innerWidth;
-      mContainer.height = window.innerHeight;
       mContainer.style.width = window.innerWidth + 'px';
       mContainer.style.height = window.innerHeight + 'px';
 
@@ -44,26 +42,22 @@
         }
       }
 
-      var CanvasProp = theatre.crews.canvas.CanvasProp;
+      var DOMProp = theatre.crews.dom.DOMProp;
       var tStage = mStage = new theatre.Stage();
+
       var tRootActor = new theatre.Actor();
       tStage.addActor(tRootActor);
-      var tRootCanvasProp = new CanvasProp(mContainer);
-      tRootCanvasProp.cacheDrawResult = false;
-      tRootActor.addProp(tRootCanvasProp);
+      tRootActor.addProp(new DOMProp(mContainer));
 
-      function FlyingBox(pColor, pWidth, pHeight) {
-        this.base(mContainer, pWidth, pHeight);
-        this.cacheWithClass = false;
-        this.color = pColor;
+      function FlyingBox(pElement, pStyles, pWidth, pHeight) {
+        this.base(pElement, pStyles);
+        this.width = pWidth;
+        this.height = pHeight;
       }
-      theatre.inherit(FlyingBox, CanvasProp);
+      theatre.inherit(FlyingBox, DOMProp);
 
-      FlyingBox.prototype.draw = function(pData) {
-        var tContext = pData.context;
-        tContext.fillStyle = this.color;
-        tContext.fillRect(0, 0, this.width, this.height);
-      }
+      var tTemplate = FlyingBox.prototype.elementTemplate = document.createElement('div');
+      tTemplate.style.position = 'absolute';
 
       for (var i = 0; i < mNumber; i++) {
         var tActor = new theatre.Actor();
@@ -74,10 +68,15 @@
 
         tActor.addProp(
           new FlyingBox(
-              '#'
-              + (random() * 15 | 0).toString(16)
-              + (random() * 15 | 0).toString(16)
-              + (random() * 15 | 0).toString(16),
+            null,
+            {
+              background: '#'
+                + (random() * 15 | 0).toString(16)
+                + (random() * 15 | 0).toString(16)
+                + (random() * 15 | 0).toString(16),
+              width: tWidth + 'px',
+              height: tHeight + 'px'
+            },
             tWidth,
             tHeight
           )
@@ -102,6 +101,6 @@
     </script>
   </head>
   <body style="margin:0;padding:0;overflow:hidden">
-    <canvas id="container"></canvas>
+    <div id="container"></div>
   </body>
 </html>

@@ -1,4 +1,6 @@
 {
+  "defaultTarget": "all",
+
   "properties": {
     "docsDir": "docs",
     "vendorDir": "vendor",
@@ -33,9 +35,12 @@
           "files": [
             "Theatre.js",
             "Matrix.js",
+            "TreeNode.js",
             "Actor.js",
+            "Prop.js",
             "StageManager.js",
-            "Stage.js"
+            "Stage.js",
+            "DrawingProp.js"
           ]
         }
       ]
@@ -49,7 +54,7 @@
           "type": "files",
           "root": "src/crews/DOM",
           "files": [
-            "DOM.js"
+            "DOMProp.js"
           ]
         }
       ]
@@ -64,7 +69,7 @@
           "root": "src/crews/canvas",
           "files": [
             "cache.js",
-            "canvas.js"
+            "CanvasProp.js"
           ]
         }
       ]

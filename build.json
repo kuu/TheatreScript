@@ -40,7 +40,9 @@
             "Prop.js",
             "StageManager.js",
             "Stage.js",
-            "DrawingProp.js"
+            "DrawingProp.js",
+            "MediaProp.js",
+            "AudioProp.js"
           ]
         }
       ]

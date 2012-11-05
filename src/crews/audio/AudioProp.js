@@ -9,7 +9,7 @@
 
   var theatre = global.theatre;
 
-  theatre.define('AudioProp', AudioProp, theatre);
+  theatre.define('crews.audio.AudioProp', AudioProp, theatre);
 
   function AudioProp(pId, pAudio) {
     this.base();

@@ -13,7 +13,7 @@
 
   function MediaProp() {
     this.base();
-    this.playbackState = MediaProp.PLAYBACK_STATE_STOPPED;
+    this.playbackState = MediaProp.PLAYBACK_STATE_NOT_READY;
     this.callbacks = {endOfStream: []};
   }
   theatre.inherit(MediaProp, theatre.Prop);
@@ -22,10 +22,8 @@
 
   MediaProp.PLAYBACK_STATE_NOT_READY         = 'notReady';
   MediaProp.PLAYBACK_STATE_READY             = 'ready';
-  MediaProp.PLAYBACK_STATE_STARTING_PLAYBACK = 'startingPlayback';
   MediaProp.PLAYBACK_STATE_PLAYING           = 'playing';
   MediaProp.PLAYBACK_STATE_PAUSED            = 'paused';
-  MediaProp.PLAYBACK_STATE_STOPPING_PLAYBACK = 'stoppingPlayback';
 
   /**
    * Overload this in your subclass to play back media data.
@@ -49,13 +47,6 @@
   };
 
   /**
-   * Overload this in your subclass to resume the playback.
-   */
-  MediaProp.prototype.resume = function() {
-    // resume here.
-  };
-
-  /**
    * Overload this in your subclass to jump to a specific point in the playback.
    * @param {Number} pPoint Specific point in the playback.
    */
@@ -63,36 +54,41 @@
     // seek here.
   };
 
-  MediaProp.prototype.togglePlay = function() {
-
-    if (this.playbackState === MediaProp.PLAYBACK_STATE_READY) {
-      this.playbackState = MediaProp.PLAYBACK_STATE_STARTING_PLAYBACK;
-      this.play();
-    } else if (this.playbackState === MediaProp.PLAYBACK_STATE_PLAYING) {
-      this.playbackState = MediaProp.PLAYBACK_STATE_STOPPING_PLAYBACK;
-      this.stop();
-    } else if (this.playbackState === MediaProp.PLAYBACK_STATE_PAUSED) {
-      this.resume();
-      this.playbackState = MediaProp.PLAYBACK_STATE_PLAYING;
-    }
-  };
-
-  MediaProp.prototype.togglePause = function() {
-    if (this.playbackState === MediaProp.PLAYBACK_STATE_PLAYING) {
-      this.pause();
-      this.playbackState = MediaProp.PLAYBACK_STATE_PAUSED;
-    } else if (this.playbackState === MediaProp.PLAYBACK_STATE_PAUSED) {
-      this.resume();
-      this.playbackState = MediaProp.PLAYBACK_STATE_PLAYING;
-    }
-  };
-
-  MediaProp.prototype.addEventListener = function(pType, pFunction) {
-    if (this.callbacks[pType] === void 0) {
-      this.callbacks[pType] = [pFunction];
+  /**
+   * Registers an event handler to Prop.
+   * @param {string} pName The type of event.
+   * @param {function} pCallback The callback.
+   * @return {theatre.Actor} This Prop.
+   */
+  MediaProp.prototype.on = function(pName, pCallback) {
+    if (this.callbacks[pName] === void 0) {
+      this.callbacks[pName] = [pCallback];
     } else {
-      this.callbacks[pType].push(pFunction);
+      this.callbacks[pName].push(pCallback);
     }
+    return this;
+  };
+
+  /**
+   * Removes an event handler from Prop.
+   * @param {string} pName The type of event.
+   * @param {function} pCallback The callback.
+   * @return {theatre.Actor} This Prop.
+   */
+  MediaProp.prototype.off = function(pName, pCallback) {
+    if (pName in this.callbacks) {
+      var tCallbacks = this.callbacks[pName];
+      for (var i = 0, il = tCallbacks; i < il; i++) {
+        if (tCallbacks[i] === pCallback) {
+          tCallbacks.splice(i, 1);
+          break;
+        }
+      }
+      if (tCallbacks.length === 0) {
+        delete this.callbacks[pName];
+      }
+    }
+    return this;
   };
 
 }(this));

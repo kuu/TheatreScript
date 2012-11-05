@@ -47,7 +47,7 @@ console.log('Play.');
   AudioProp.prototype.stop = function() {
 console.log('Stop.');
     this.audioElement.stop();
-    this.playbackState = theatre.MediaProp.PLAYBACK_STATE_STOPPED;
+    this.playbackState = theatre.MediaProp.PLAYBACK_STATE_READY;
   };
 
   /**
@@ -56,14 +56,6 @@ console.log('Stop.');
   AudioProp.prototype.pause = function() {
     // pause here.
     this.playbackState = theatre.MediaProp.PLAYBACK_STATE_PAUSED;
-  };
-
-  /**
-   * Overload this in your subclass to resume the playback.
-   */
-  AudioProp.prototype.resume = function() {
-    // resume here.
-    this.playbackState = theatre.MediaProp.PLAYBACK_STATE_PLAYING;
   };
 
   /**

@@ -19,7 +19,8 @@
           "targets": [
             "core",
             "dom-crew",
-            "canvas-crew"
+            "canvas-crew",
+            "crews"
           ]
         }
       ]
@@ -41,8 +42,7 @@
             "StageManager.js",
             "Stage.js",
             "DrawingProp.js",
-            "MediaProp.js",
-            "AudioProp.js"
+            "MediaProp.js"
           ]
         }
       ]
@@ -72,6 +72,19 @@
           "files": [
             "cache.js",
             "CanvasProp.js"
+          ]
+        }
+      ]
+    },
+    "crews": {
+      "builder": "closure-compiler",
+      "outputs": "${binDir}/crews/crews.js",
+      "resources": [
+        {
+          "type": "files",
+          "root": "src/crews",
+          "files": [
+            "AudioProp.js"
           ]
         }
       ]

@@ -20,7 +20,7 @@
             "core",
             "dom-crew",
             "canvas-crew",
-            "crews"
+            "audio-crew"
           ]
         }
       ]
@@ -76,13 +76,14 @@
         }
       ]
     },
-    "crews": {
+
+    "audio-crew": {
       "builder": "closure-compiler",
-      "outputs": "${binDir}/crews/crews.js",
+      "outputs": "${binDir}/crews/audio.js",
       "resources": [
         {
           "type": "files",
-          "root": "src/crews",
+          "root": "src/crews/audio",
           "files": [
             "AudioProp.js"
           ]

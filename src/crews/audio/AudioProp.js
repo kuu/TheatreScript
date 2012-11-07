@@ -8,13 +8,27 @@
 (function(global) {
 
   var theatre = global.theatre;
+  var mAudioContext;
+  if (webkitAudioContext) {
+    mAudioContext = new webkitAudioContext();
+  }
 
-  theatre.define('AudioProp', AudioProp, theatre);
+  theatre.define('crews.audio.AudioProp', AudioProp, theatre);
 
   function AudioProp(pId, pAudio) {
     this.base();
     this.id = pId;
-    this.audioElement = pAudio;
+    if (mAudioContext) {
+      // Web Audio API
+      console.log('Use Web Audio API.');
+      var tSource = this.sourceNode = mAudioContext.createBufferSource();
+      tSource.buffer = pAudio;
+      tSource.connect(mAudioContext.destination);
+    } else {
+      // HTML Audio Element
+      console.log('Use HTML Audio Element.');
+      this.audioElement = pAudio;
+    }
   }
   theatre.inherit(AudioProp, theatre.MediaProp);
 
@@ -36,8 +50,12 @@
    * Overload this in your subclass to play back media data.
    */
   AudioProp.prototype.play = function() {
-console.log('Play.');
-    this.audioElement.play();
+console.log('AudioProp#play');
+    if (mAudioContext) {
+      this.sourceNode.noteOn(0);
+    } else {
+      this.audioElement.play();
+    }
     this.playbackState = theatre.MediaProp.PLAYBACK_STATE_PLAYING;
   };
 
@@ -45,8 +63,12 @@ console.log('Play.');
    * Overload this in your subclass to stop the playback.
    */
   AudioProp.prototype.stop = function() {
-console.log('Stop.');
-    this.audioElement.stop();
+console.log('AudioProp#stop');
+    if (mAudioContext) {
+      this.sourceNode.noteOff(0);
+    } else {
+      this.audioElement.stop();
+    }
     this.playbackState = theatre.MediaProp.PLAYBACK_STATE_READY;
   };
 

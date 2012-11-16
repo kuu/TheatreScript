@@ -10,18 +10,50 @@
   var theatre = global.theatre;
 
   theatre.MotionManager = MotionManager;
+  theatre.MotionInput = MotionInput;
 
   function MotionInput() {
-
+    this.id = 0;
+    this.type = 'unknown';
+    this.x = 0;
+    this.y = 0;
+    this.pressure = 0;
+    this.size = 0;
   }
+
+  function MotionCue() {
+    this.type = '';
+    this.inputIndex = -1;
+    this.inputs = [];
+    this.startTime = 0;
+    this.cueTime = 0;
+  }
+
+  MotionInput.prototype.addInput = function(pInput) {
+    this.inputs.push(pInput);
+  };
 
   function MotionManager(pStage) {
     this.base(pStage);
   };
   theatre.inherit(MotionManager, theatre.InputManager);
 
-  MotionManager.prototype.obtainMotionInput = function() {
+  MotionManager.prototype.obtain = function(
+    pStartTime,
+    pCueTime,
+    pType,
+    pNumOfInputs
+  ) {
+    // TODO: Cache the heck out of this. Make a pool we can swim in.
+    var tInput = new MotionInput();
+    tInput.startTime = pStartTime;
+    tInput.cueTime = pCueTime;
+    tInput.type = pType;
+    tInputs.length = pNumOfInputs;
+  };
 
+  MotionManager.prototype.cue = function(pMotionCue) {
+    // TODO: write something here other than comments.
   };
 
 

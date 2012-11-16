@@ -20,12 +20,6 @@
     var tActorCues = tActor._cues;
     var tStage = tActor.stage = tActor.parent.stage;
 
-    if (tActorCues !== void 0) {
-      for (var k in tActorCues) {
-        tStage.on(k, tActor);
-      }
-    }
-
     tActor.invalidate();
 
     tActor.cue('enter');
@@ -40,14 +34,6 @@
 
     tStage.deactivateActor(tActor);
     tActor.isActing = false;
-
-    var tActorCues = tActor._cues;
-    if (tActorCues !== void 0) {
-      for (var k in tActorCues) {
-        tStage.ignore(k, tActor);
-      }
-    }
-
     tActor.stage = null;
   });
 
@@ -224,67 +210,61 @@
     /**
      * Listen for a cue and execute the callback when it happens.
      * @param {string} pName The type of cue.
-     * @param {function} pCallback The callback.
-     * @return {theatre.Actor} This Actor.
+     * @param {function} pListener The listener.
+     * @param {bool=false} pCapture True to callback in the capture phase, false for bubble.
      */
-    on: function(pName, pCallback) {
-      if (('_cues' in this) === false) {
-        this._cues = new Object();
+    on: function(pName, pListener, pCapture) {
+      var tCues = this.treeNode.cues;
+      if (!pListener) {
+        return;
       }
-      if ((pName in this._cues) === false) {
-        this._cues[pName] = [pCallback];
-        if (this.stage !== null) {
-          this.stage.on(pName, this);
-        }
-      } else {
-        this._cues[pName].push(pCallback);
+      pCapture = pCapture || false;
+
+      if (!(pName in tCues)) {
+        tCues[pName] = [[], []];
       }
-      return this;
+      tCues[pName][pCapture ? 0 : 1].push(pListener);
     },
 
     /**
      * Ignores a cue this Actor was previously listening to.
      * @param {string} pName The type of cue.
-     * @param {function} pCallback The callback.
-     * @return {theatre.Actor} This Actor.
+     * @param {function} pListener The listener.
+     * @param {bool=false} pCapture True to callback in the capture phase, false for bubble.
      */
-    ignore: function(pName, pCallback) {
-      if ('_cues' in this && pName in this._cues) {
-        var tCues = this._cues[pName];
-        for (var i = 0, il = tCues.length; i < il; i++) {
-          if (tCues[i] === pCallback) {
-            tCues.splice(i, 1);
-            break;
-          }
-        }
-        if (tCues.length === 0) {
-          delete this._cues[pName];
-          if (this.stage !== null) {
-            this.stage.ignore(pName, this);
-          }
-        }
+    ignore: function(pName, pListener, pCapture) {
+      var tCues = this.treeNode.cues;
+      if (!pListener) {
+        return;
       }
-      return this;
+      pCapture = pCapture || false;
+
+      if (!(pName in tCues)) {
+        return;
+      }
+
+      var tListeners = tCues[pName][pCapture ? 0 : 1];
+      var tIndex = tListeners.indexOf(pListener);
+      if (tIndex !== -1) {
+        tListeners.splice(tIndex, 1);
+      }
     },
 
     /**
-     * Sends a cue to this Actor.
+     * Sends a cue to this Actor. Will only cue if this Actor
+     * has a Stage.
      * @param {string} pName The type of cue.
-     * @param {Object=} pData Data to send with the cue.
-     * @return {theatre.Actor} This Actor.
+     * @param {Object=} pData Data to send with the cue if any.
+     * @param {bool} pBubbles If this cue bubbles or not.
+     * @param {bool} pCaptures If this cue captures or not.
+     * @param {bool} pIsStoppable If this cue can be stopped or not.
      */
-    cue: function(pName, pData) {
-      if ('_cues' in this && pName in this._cues) {
-        var tCallbacks = this._cues[pName].slice(0);
-        for (var i = 0, il = tCallbacks.length; i < il; i++) {
-          tCallbacks[i].call(this, {
-            target: this,
-            data: pData,
-            name: pName
-          });
-        }
+    cue: function(pName, pData, pBubbles, pCaptures, pIsStoppable) {
+      if (this.stage === null) {
+        return;
       }
-      return this;
+
+      this.stage._cueManager.cue(pName, pData, this, pBubbles, pCaptures, pIsStoppable);
     },
 
     /**
@@ -292,7 +272,7 @@
      * function to be called this or next step.
      */
     invalidate: function() {
-      this.cue('invalidate');
+      this.cue('invalidate', null, true, true, true);
     },
 
     /**

@@ -42,6 +42,8 @@
     this.parentNode = null;
     /** @type {theatre.Actor} */
     this.actor = pActor;
+    /** @type {Object} */
+    this.cues = {};
   }
 
   /**

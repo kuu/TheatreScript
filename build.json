@@ -37,12 +37,16 @@
             "Theatre.js",
             "Matrix.js",
             "TreeNode.js",
+            "CueManager.js",
             "Actor.js",
             "Prop.js",
             "StageManager.js",
             "Stage.js",
             "DrawingProp.js",
-            "MediaProp.js"
+            "MediaProp.js",
+            "InputManager.js",
+            "KeyManager.js",
+            "MotionManager.js"
           ]
         }
       ]
@@ -56,7 +60,8 @@
           "type": "files",
           "root": "src/crews/DOM",
           "files": [
-            "DOMProp.js"
+            "DOMProp.js",
+            "DOMInputBridge.js"
           ]
         }
       ]

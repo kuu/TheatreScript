@@ -72,13 +72,6 @@
     this._actingActors = [];
 
     /**
-     * An overall map of event listeners.
-     * @private
-     * @type Object
-     */
-    this._listeners = {};
-
-    /**
      * Functions to be called in the animation frame.
      * These functions have had their {@link theatre.Actor#schedule}
      * function called in the current step or were added via
@@ -135,6 +128,17 @@
     });
 
     this.stageManager = new theatre.StageManager();
+
+    /**
+     * The main cue manager for this Stage.
+     * @private
+     * @type {theatre.CueManager}
+     */
+    this._cueManager = new theatre.CueManager(tStageManager.treeNode);
+
+    this.keyManager = new theatre.KeyManager(this);
+
+    this.motionManager = new theatre.MotionManager(this);
   }
 
 
@@ -393,56 +397,34 @@
 
     /**
      * Registers the given listener for the given cue type.
-     * @private
      * @param {string} pName The type of cue.
      * @param {function} pListener The listener.
+     * @param {bool=false} pCapture True to callback in the capture phase, false for bubble.
      */
-    on: function(pName, pListener) {
-      if (!(pName in this._listeners)) {
-        this._listeners[pName] = [pListener];
-      } else {
-        this._listeners[pName].push(pListener);
-      }
+    on: function(pName, pListener, pCapture) {
+      this._cueManager.on(null, pName, pListener, pCapture);
     },
 
     /**
      * Unregisters the given listener from the given cue type.
-     * @private
      * @param {string} pName The type of cue.
      * @param {function} pListener The listener.
+     * @param {bool=false} pCapture True to callback in the capture phase, false for bubble.
      */
-    ignore: function(pName, pListener) {
-      if ((pName in this._listeners)) {
-        var tListeners = this._listeners[pName];
-        for (var i = 0, il = tListeners.length; i < il; i++) {
-          if (tListeners[i] === pListener) {
-            tListeners.splice(i, 1);
-            break;
-          }
-        }
-        if (tListeners.length === 0) {
-          delete this._listeners[pName];
-        }
-      }
+    ignore: function(pName, pListener, pCapture) {
+      this._cueManager.ignore(null, pName, pListener, pCapture);
     },
 
     /**
      * Sends a cue to all listeners for that cue.
      * @param {string} pName The type of cue.
      * @param {Object=} pData Data to send with the cue if any.
+     * @param {bool} pBubbles If this cue bubbles or not.
+     * @param {bool} pCaptures If this cue captures or not.
+     * @param {bool} pIsStoppable If this cue can be stopped or not.
      */
-    cue: function(pName, pData) {
-      if (pName in this._listeners) {
-        var tListeners = this._listeners[pName].slice(0);
-        for (var i = 0, il = tListeners.length; i < il; i++) {
-          var tListener = tListeners[i];
-          if (tListener.cue !== void 0) {
-            tListener.cue(pName, pData);
-          } else {
-            tListener.call(this, pName, pData);
-          }
-        }
-      }
+    cue: function(pName, pData, pBubbles, pCaptures, pIsStoppable) {
+      this._cueManager.cue(pName, pData, null, pBubbles, pCaptures, pIsStoppable);
     }
   };
 

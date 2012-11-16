@@ -128,7 +128,7 @@
     /** @type {function} */
     var tProc = mSimpleProcs[pKey];
     /** @type {Array.<TreeNode>} */
-    var tChildNodes = this.childNodes;
+    var tChildNodes = this.childNodes.slice(0);
     /** @type {number} */
     var i;
     /** @type {number} */
@@ -155,7 +155,7 @@
     /** @type {function} */
     var tProc = mSimpleProcs[pKey];
     /** @type {Array.<TreeNode>} */
-    var tChildNodes = this.childNodes;
+    var tChildNodes = this.childNodes.slice(0);
     /** @type {number} */
     var i;
     /** @type {number} */
@@ -182,7 +182,7 @@
     /** @type {ComplexProcess} */
     var tProc = mComplexProcs[pKey];
     /** @type {Array.<TreeNode>} */
-    var tChildNodes = this.childNodes;
+    var tChildNodes = this.childNodes.slice(0);
     /** @type {TreeNode} */
     var tChildNode;
     /** @type {number} */

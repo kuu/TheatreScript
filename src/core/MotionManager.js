@@ -11,10 +11,18 @@
 
   theatre.MotionManager = MotionManager;
 
+  function MotionInput() {
+
+  }
+
   function MotionManager(pStage) {
     this.base(pStage);
   };
   theatre.inherit(MotionManager, theatre.InputManager);
+
+  MotionManager.prototype.obtainMotionInput = function() {
+
+  };
 
 
 }(this));

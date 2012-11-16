@@ -126,16 +126,7 @@
 
       pData.phase = 2;
       tListenerPackage = tCues[pName];
-      tListenersOfType = tListenerPackage[0];
-
-      for (j = 0, jl = tListenersOfType.length; j < jl; j++) {
-        tListenersOfType[j].call(pTargetActor, pData);
-        if (tShouldStopNow === true) {
-          return;
-        }
-      }
-
-      tListenersOfType = tListenerPackage[1];
+      tListenersOfType = tListenerPackage[0].slice(0).concat(tListenerPackage[1].slice(0));
 
       for (j = 0, jl = tListenersOfType.length; j < jl; j++) {
         tListenersOfType[j].call(pTargetActor, pData);
@@ -152,7 +143,8 @@
       tTempActor = tCurrentNode.actor;
 
       if (pName in tCues) {
-        tListeners.push([tTempActor, tCues[pName].slice(0)]);
+        tListenerPackage = tCues[pName];
+        tListeners.push([tTempActor, [tListenerPackage[0].slice(0), tListenerPackage[1].slice(0)]]);
       }
     }
 

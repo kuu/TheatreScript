@@ -197,20 +197,23 @@
     }
 
     // current node, in
-    tProc.enterSelf.call(this, pData);
+    if (tProc.enterSelf.call(this, pData) === false) {
+      return;
+    }
 
     // child nodes
     if (tNumOfChildren > 0) {
-      tProc.enterChildren.call(this, pData);
+      if (tProc.enterChildren.call(this, pData) !== false) {
+        for (i = 0; i < tNumOfChildren; ++i) {
+          tChildNode = tChildNodes[i];
+          if (tProc.enterChild.call(this, pData, tChildNode) !== false) {
+            tChildNode.processTopDownInOut(pKey, pData);
+            tProc.exitChild.call(this, pData, tChildNode);
+          }
+        }
 
-      for (i = 0; i < tNumOfChildren; ++i) {
-        tChildNode = tChildNodes[i];
-        tProc.enterChild.call(this, pData, tChildNode);
-        tChildNode.processTopDownInOut(pKey, pData);
-        tProc.exitChild.call(this, pData, tChildNode);
+        tProc.exitChildren.call(this, pData);
       }
-
-      tProc.exitChildren.call(this, pData);
     }
 
     // current node, out

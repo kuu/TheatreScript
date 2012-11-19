@@ -29,6 +29,7 @@
    */
   DrawingProp.prototype.preDraw = function(pContext) {
     // Do nothing by default
+    return true;
   };
 
   /**
@@ -58,6 +59,7 @@
    */
   DrawingProp.prototype.preDrawChildren = function(pContext) {
     // Do nothing. Overload this.
+    return true;
   };
 
   /**
@@ -76,7 +78,8 @@
    * @param {theatre.Actor} pChildActor The child Actor about to be drawn.
    */
   DrawingProp.prototype.preDrawChild = function(pParentContext, pChildActor) {
-    // Do this.
+    // Implement this.
+    return true;
   };
 
   /**
@@ -136,17 +139,25 @@
       tProp = tProps[i];
       if (tProp.preDraw(pData) !== false) {
         tProp.draw(pData);
+        tProp.postDraw(pData);
+      } else {
+        return false;
       }
-      tProp.postDraw(pData);
     }
+
+    return true;
   };
 
   DrawingComplexProcess.prototype.enterChildren = function(pData) {
     var tProps = this.actor.getProps(pData._propType);
 
     for (var i = 0, il = tProps.length; i < il; i++) {
-      tProps[i].preDrawChildren(pData);
+      if (tProps[i].preDrawChildren(pData) === false) {
+        return false;
+      }
     }
+
+    return true;
   };
 
   DrawingComplexProcess.prototype.enterChild = function(pData, pChildNode) {
@@ -154,8 +165,12 @@
     var tChildActor = pChildNode.actor;
 
     for (var i = 0, il = tProps.length; i < il; i++) {
-      tProps[i].preDrawChild(pData, tChildActor);
+      if (tProps[i].preDrawChild(pData, tChildActor) === false) {
+        return false;
+      }
     }
+
+    return true;
   };
 
   DrawingComplexProcess.prototype.exitChild = function(pData, pChildNode) {

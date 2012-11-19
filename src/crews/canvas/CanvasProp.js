@@ -43,8 +43,6 @@
     var tCacheId;
 
     if (this.cacheDrawResult === true) {
-      pData._isCached = true;
-
       if (this._drawingCache !== null) {
         tCacheId = this.getDrawingCacheId();
         mCache.drawOnTo(tCacheId, tContext, 0, 0);
@@ -59,9 +57,9 @@
       }
     }
 
-    pData._isCached = false;
-
     tContext.save();
+
+    return true;
   };
 
   /**
@@ -73,9 +71,7 @@
   };
 
   CanvasProp.prototype.postDraw = function(pData) {
-    if (pData._isCached === false) {
-      pData.context.restore();
-    }
+    pData.context.restore();
   }
 
   CanvasProp.prototype.getDrawingCacheId = function() {
@@ -125,6 +121,8 @@
       tMatrix.e,
       tMatrix.f
     );
+
+    return true;
   };
 
   /**

@@ -42,12 +42,15 @@
       return;
     }
 
-    pData.stop = function() {};
+    pData.stop = function() {
+      pData.stopped = true;
+    };
 
     pData.stopNow = function() {
       if (pIsStoppable === true) {
         tShouldStopNow = true;
       }
+      pData.stopped = true;
     };
 
     pData.phase = 2;
@@ -177,11 +180,27 @@
     pData.bubbles = pBubbles;
     pData.stoppable = pIsStoppable;
     pData.type = pName;
+    pData.stopped = false;
 
     if (pCaptures === false && pBubbles === false) {
       immediateCue(pName, pData, pTargetActor, tCurrentNode);
       return;
     }
+
+    pData.stop = function() {
+      if (pIsStoppable === true) {
+        tShouldStop = true;
+      }
+      pData.stopped = true;
+    };
+
+    pData.stopNow = function() {
+      if (pIsStoppable === true) {
+        tShouldStop = true;
+        tShouldStopNow = true;
+      }
+      pData.stopped = true;
+    };
 
     pData.phase = 1; // Capture
 

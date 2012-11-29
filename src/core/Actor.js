@@ -15,7 +15,7 @@
   theatre.define('theatre.Actor', Actor);
 
 
-  TreeNode.registerSimpleProcess('onActorEnter', function() {
+  TreeNode.registerSimpleProcess('onActorEnter', function(pDoStep) {
     var tActor = this.actor;
 
     if (tActor.parent === null) {
@@ -26,7 +26,7 @@
 
     tActor.cue('enter');
 
-    tActor.startActing();
+    tActor.startActing(pDoStep);
     tActor.invalidate();
   });
 
@@ -521,16 +521,20 @@
     /**
      * Makes the Actor start acting and playing
      * it's scripts.
-     * @param {bool=false} pNoStep If true, do not step by 1.
+     * @param {bool=false} pDoStep If true, do not step by 1.
      * @return {theatre.Actor} This Actor.
      */
-    startActing: function(pNoStep) {
+    startActing: function(pDoStep) {
       if (this.isActing === false) {
         this.on('prepare', onPrepare);
         this.on('update', onUpdate);
         this.isActing = true;
 
-        if (!pNoStep) {
+        if (typeof pDoStep !== 'boolean') {
+          pDoStep = true;
+        }
+
+        if (pDoStep === true) {
           this.cue('prepare');
           this.cue('update');
         }
@@ -725,6 +729,7 @@
       var tCurrentStep = tScene.currentStep += pDelta;
       var tLooped = false;
       var i, il;
+      var tData;
 
       if (tCurrentStep >= tLength) {
         if (tScene.shouldLoop === false || tLength === 1) {
@@ -736,18 +741,33 @@
         tLooped = true;
       }
 
-      tScene.previousStep = tPreviousStep;
+      if (pDelta < 0) {
+        tScene.previousStep = tPreviousStep = -1;
+      } else {
+        tScene.previousStep = tPreviousStep;
+      }
 
       if (tPreviousStep === tCurrentStep) {
         if (tLooped === true) {
           executeScripts(this, tScripts[0], tCurrentStep);
+          throw new Error();
         }
-      } else if (pDelta < 0 || tLooped === true) {
-        this.cue('reversestep');
-      } else {
-        for (i = tPreviousStep + 1, il = tCurrentStep; i <= il; i++) {
-          tScene.currentStep = i;
+      }
+
+      for (i = tPreviousStep + 1, il = tCurrentStep; i <= il; i++) {
+        tData = {
+          currentStep: i,
+          targetStep: tCurrentStep,
+          looped: tLooped
+        };
+
+        tScene.currentStep = i;
+
+        this.cue('startstep', tData);
+
+        if (tData.stopped === false) {
           executeScripts(this, tScripts[0], i);
+          this.cue('endstep', tData);
         }
       }
     },
@@ -757,14 +777,18 @@
      * this Actor.
      * @param {theatre.Actor} pActor The Actor to add.
      * @param {number=} pLayer The layer to add to or auto.
+     * @param {bool=true} pDoStep If true, steps this and all children by 1.
      * @return {theatre.Actor} This Actor.
-     * @todo Make a sorted dictionary, not a massive array.
      * @todo Make the layer counter smart.
      */
-    addActor: function(pActor, pLayer) {
+    addActor: function(pActor, pLayer, pDoStep) {
       var tName;
       var tStage = this.stage;
       var tNode = pActor.treeNode;
+
+      if (typeof pDoStep !== 'boolean') {
+        pDoStep = true;
+      }
 
       if (pActor._ctorCalled !== true) {
         throw new Error('Actor not initialized correctly. Call this.base.constructor() first.');
@@ -794,7 +818,7 @@
       this._layerToActorMap['' + pLayer] = pActor;
 
       if (tStage !== null) {
-        tNode.processTopDown('onActorEnter');
+        tNode.processTopDown('onActorEnter', pDoStep);
       }
 
       return this;

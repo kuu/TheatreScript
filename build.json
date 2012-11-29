@@ -20,6 +20,7 @@
             "core",
             "dom-crew",
             "canvas-crew",
+            "webgl-crew",
             "audio-crew"
           ]
         }
@@ -77,6 +78,20 @@
           "files": [
             "cache.js",
             "CanvasProp.js"
+          ]
+        }
+      ]
+    },
+
+    "webgl-crew": {
+      "builder": "closure-compiler",
+      "outputs": "${binDir}/crews/webgl.js",
+      "resources": [
+        {
+          "type": "files",
+          "root": "src/crews/webgl",
+          "files": [
+            "WebGLProp.js"
           ]
         }
       ]

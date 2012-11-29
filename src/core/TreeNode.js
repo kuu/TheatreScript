@@ -88,6 +88,8 @@
 
     // remove child
     this.childNodes.splice(tIndex, 1);
+
+    pNode.parentNode = null;
   };
 
   /**

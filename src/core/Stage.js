@@ -65,13 +65,6 @@
     this._animationFrameId = null;
 
     /**
-     * Currently active Actors that are acting.
-     * @private
-     * @type Array.<theatre.Actor>
-     */
-    this._actingActors = [];
-
-    /**
      * Functions to be called in the animation frame.
      * These functions have had their {@link theatre.Actor#schedule}
      * function called in the current step or were added via
@@ -106,6 +99,10 @@
      */
     this.isOpen = false;
 
+    this.keyManager = new theatre.KeyManager(this);
+
+    this.motionManager = new theatre.MotionManager(this);
+
     var tStageManager;
 
     /**
@@ -122,8 +119,6 @@
         tStageManager = pStageManager;
         pStageManager.layer = 0;
         pStageManager.stage = this;
-        pStageManager.isActing = true;
-        this.activateActor(pStageManager, true);
       }
     });
 
@@ -136,9 +131,7 @@
      */
     this._cueManager = new theatre.CueManager(tStageManager.treeNode);
 
-    this.keyManager = new theatre.KeyManager(this);
-
-    this.motionManager = new theatre.MotionManager(this);
+    tStageManager.startActing();
   }
 
 
@@ -221,11 +214,10 @@
      */
     open: function() {
       if (this.isOpen) {
-        return this;
+        return;
       }
       this.isOpen = true;
       this.timer = setTimeout(tickCallback, this.stepRate, this);
-      return this;
     },
 
     /**
@@ -235,12 +227,11 @@
      */
     close: function() {
       if (!this.isOpen) {
-        return this;
+        return;
       }
       clearTimeout(this.timer);
       this.timer = null;
       this.isOpen = false;
-      return this;
     },
 
     /**
@@ -277,59 +268,32 @@
      * @todo Need to implement this correctly.
      */
     step: function() {
-      var i, il, tActingActors;
-      var tScripts = this._scheduledScripts;
+      var i, il;
+      var tScripts = this._scheduledScripts.slice(0);
 
-      for (i = 0; i < tScripts.length; i++) {
-        tScripts[i]();
-      }
       this._scheduledScripts = [];
 
-      this.cue('enterstep');
-
-      var tActingActorDepths = this._actingActors.slice(0),
-          tDepth,
-          tIndex = tDepth = tActingActorDepths.length;
-
-      // Only run prepared callbacks and update
-      // the current slide index on each actor.
-      while (tIndex-- !== 0) {
-        if (tActingActorDepths[tIndex] === void 0) {
-          continue;
-        }
-
-        tActingActors = tActingActorDepths[tIndex].slice(0);
-
-        for (i = 0, il = tActingActors.length; i < il; i++) {
-          tActingActors[i].step(1, true);
-        }
-      }
-
-      tIndex = tDepth;
-
-      // Run scripts and cues on active actors.
-      while (tIndex-- !== 0) {
-        if (tActingActorDepths[tIndex] === void 0) {
-          continue;
-        }
-        tActingActors = tActingActorDepths[tIndex].slice(0);
-
-        for (i = 0, il = tActingActors.length; i < il; i++) {
-          tActingActors[i].scheduleScripts();
-        }
-      }
-
-      tScripts = this._scheduledScripts;
-      for (i = 0; i < tScripts.length; i++) {
+      for (i = 0, il = tScripts.length; i < il; i++) {
         tScripts[i]();
       }
+
+      // Run all prepared scripts from top down.
+      this.broadcast('prepare', null, false);
+
+      // Run all enterstep handlers from top down.
+      this.broadcast('enterstep', null, false);
+
+      // Run all update handlers from bottom up.
+      this.broadcast('update', null, true);
+
+      tScripts = this._scheduledScripts.slice(0);
       this._scheduledScripts = [];
+
+      for (i = 0, il = tScripts.length; i < il; i++) {
+        tScripts[i]();
+      }
 
       tScripts = null;
-      tActingActorDepths = null;
-      tActingActors = null;
-
-      this.cue('update');
 
       if (this._animationFrameId === null && this._scheduledFunctions.length !== 0) {
         this._animationFrameId = mRequestAnimationFrame((function(pContext) {
@@ -339,60 +303,8 @@
         })(this));
       }
 
-      this.cue('leavestep');
-    },
-
-    /**
-     * Activates an Actor.
-     * @private
-     * @param {theatre.Actor} pActor
-     * @param {boolean} pNoStep
-     */
-    activateActor: function(pActor, pNoStep) {
-      var tParent = pActor.parent,
-      tDepth = 0;
-
-      while (tParent !== null) {
-        tDepth++;
-        tParent = tParent.parent;
-      }
-
-      var tActingActors = this._actingActors;
-      if (tActingActors.length <= tDepth) {
-        tActingActors = tActingActors[tDepth] = new Array();
-      } else {
-        tActingActors = tActingActors[tDepth];
-      }
-
-      if (tActingActors.indexOf(pActor) === -1) {
-        tActingActors.push(pActor);
-        if (!pNoStep) {
-          pActor.step(1);
-        }
-      }
-    },
-
-    /**
-     * Deactivates an Actor.
-     * @private
-     * @param {theatre.Actor} pActor
-     */
-    deactivateActor: function(pActor) {
-      var tParent = pActor.parent,
-      tDepth = 0;
-
-      while (tParent !== null) {
-        tDepth++;
-        tParent = tParent.parent;
-      }
-
-      var tActingActors = this._actingActors;
-      if (tActingActors[tDepth] === void 0) return;
-
-      var i = tActingActors[tDepth].indexOf(pActor);
-      if (i >= 0) {
-        tActingActors[tDepth].splice(i, 1);
-      }
+      // Run all leavestep handlers from top down.
+      this.broadcast('leavestep', null, false);
     },
 
     /**
@@ -424,7 +336,17 @@
      * @param {bool} pIsStoppable If this cue can be stopped or not.
      */
     cue: function(pName, pData, pBubbles, pCaptures, pIsStoppable) {
-      this._cueManager.cue(pName, pData, null, pBubbles, pCaptures, pIsStoppable);
+      this._cueManager.cue(pName, pData, null, pBubbles, pCaptures, pIsStoppable, false);
+    },
+
+    /**
+     * Sends a broadcast cue to all listeners for that cue.
+     * @param {string} pName The type of cue.
+     * @param {Object=} pData Data to send with the cue if any.
+     * @param {bool=false} pBottomUp Process bottom up if true, top down if false.
+     */
+    broadcast: function(pName, pData, pBottomUp) {
+      this._cueManager.broadcast(pName, pData, null, pBottomUp);
     }
   };
 

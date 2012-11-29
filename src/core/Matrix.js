@@ -22,6 +22,24 @@
     Matrix = TheatreMatrix;
   }
 
+  function getPoint(pX, pY) {
+    return [
+      pX * this.a + pX * this.c + this.e,
+      pY * this.b + pY * this.d + this.f
+    ];
+  }
+
+  function clone() {
+    var tMatrix = new Matrix();
+    tMatrix.a = this.a;
+    tMatrix.b = this.b;
+    tMatrix.c = this.c;
+    tMatrix.d = this.d;
+    tMatrix.e = this.e;
+    tMatrix.f = this.f;
+    return tMatrix;
+  }
+
   /**
    * A polyfill for CSSMatrix support only 2d functions.
    * @constructor
@@ -137,6 +155,10 @@
       f: 0
     });
   };
+
+  Matrix.prototype.getPoint = getPoint;
+
+  Matrix.prototype.clone = clone;
 
   TheatreMatrix.prototype.toString = function() {
     return 'matrix3d(' + this.a + ',' + this.b + ',0,0,' + this.c + ',' + this.d + ',0,0,0,0,1,0,' + this.e + ',' + this.f + ',0,1)';

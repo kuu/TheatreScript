@@ -8,8 +8,59 @@
  (function(global) {
 
   var theatre = global.theatre;
+  var TreeNode = theatre.TreeNode;
 
   theatre.CueManager = CueManager;
+
+  TreeNode.registerSimpleProcess('broadcastCue', function(pData) {
+    var tData = pData.data;
+    var tName = pData.name;
+    var tListenerPackage, tListenersOfType;
+    var tCues = this.cues;
+    var i, il;
+    var tActor = this.actor;
+
+    if (!(tName in tCues)) {
+      return;
+    }
+
+    tListenerPackage = tCues[tName];
+    tListenersOfType = tListenerPackage[0].slice(0).concat(tListenerPackage[1].slice(0));
+
+    for (i = 0, il = tListenersOfType.length; i < il; i++) {
+      tListenersOfType[i].call(tActor, tData);
+    }
+  });
+
+  function immediateCue(pName, pData, pTargetActor, pCurrentNode) {
+    var tCues = pCurrentNode.cues;
+    var tShouldStopNow = false;
+    var tListenerPackage, tListenersOfType;
+    var i, il;
+
+    if (!(pName in tCues)) {
+      return;
+    }
+
+    pData.stop = function() {};
+
+    pData.stopNow = function() {
+      if (pIsStoppable === true) {
+        tShouldStopNow = true;
+      }
+    };
+
+    pData.phase = 2;
+    tListenerPackage = tCues[pName];
+    tListenersOfType = tListenerPackage[0].slice(0).concat(tListenerPackage[1].slice(0));
+
+    for (i = 0, il = tListenersOfType.length; i < il; i++) {
+      tListenersOfType[i].call(pTargetActor, pData);
+      if (tShouldStopNow === true) {
+        return;
+      }
+    }
+  }
 
   /**
   * A class for handling cues (events)
@@ -64,14 +115,38 @@
     }
   };
 
+  CueManager.prototype.broadcast = function(pName, pData, pTargetActor, pBottomUp) {
+    var tCurrentNode;
+    pData = pData || {};
+    var tPackage = {
+      data: pData,
+      name: pName
+    };
+
+    if (!pTargetActor) {
+      tCurrentNode = this.rootNode;
+    } else {
+      tCurrentNode = pTargetActor.treeNode;
+    }
+
+    pData.stop = pData.stopNow = function() {};
+    pData.phase = 2;
+
+    if (pBottomUp === true) {
+      tCurrentNode.processBottomUp('broadcastCue', tPackage);
+    } else {
+      tCurrentNode.processTopDown('broadcastCue', tPackage);
+    }
+  };
+
   /**
    * Sends a cue to all listeners for that cue.
    * @param {string} pName The type of cue.
    * @param {Object=} pData Data to send with the cue if any.
    * @param {theatre.Actor=} pTargetActor The target actor or none. Default is root.
-   * @param {bool} pBubbles If this cue bubbles or not.
-   * @param {bool} pCaptures If this cue captures or not.
-   * @param {bool} pIsStoppable If this cue can be stopped or not.
+   * @param {bool=false} pBubbles If this cue bubbles or not.
+   * @param {bool=false} pCaptures If this cue captures or not.
+   * @param {bool=false} pIsStoppable If this cue can be stopped or not.
    */
   CueManager.prototype.cue = function(pName, pData, pTargetActor, pBubbles, pCaptures, pIsStoppable) {
     var tListeners = [];
@@ -102,40 +177,13 @@
     pData.bubbles = pBubbles;
     pData.stoppable = pIsStoppable;
     pData.type = pName;
-    pData.phase = 1; // Capture
-
-    pData.stop = function() {
-      if (pIsStoppable === true) {
-        tShouldStop = true;
-      }
-    };
-
-    pData.stopNow = function() {
-      if (pIsStoppable === true) {
-        tShouldStopNow = true;
-        tShouldStop = true;
-      }
-    };
 
     if (pCaptures === false && pBubbles === false) {
-      tCues = tCurrentNode.cues;
-
-      if (!(pName in tCues)) {
-        return;
-      }
-
-      pData.phase = 2;
-      tListenerPackage = tCues[pName];
-      tListenersOfType = tListenerPackage[0].slice(0).concat(tListenerPackage[1].slice(0));
-
-      for (j = 0, jl = tListenersOfType.length; j < jl; j++) {
-        tListenersOfType[j].call(pTargetActor, pData);
-        if (tShouldStopNow === true) {
-          return;
-        }
-      }
+      immediateCue(pName, pData, pTargetActor, tCurrentNode);
       return;
     }
+
+    pData.phase = 1; // Capture
 
     // Collect all the listeners
     for (; tCurrentNode !== null; tCurrentNode = tCurrentNode.parentNode) {

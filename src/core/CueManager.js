@@ -118,7 +118,7 @@
     }
   };
 
-  CueManager.prototype.broadcast = function(pName, pData, pTargetActor, pBottomUp) {
+  CueManager.prototype.broadcast = function(pName, pData, pTargetActor, pBottomUp, pLastToFirst) {
     var tCurrentNode;
     pData = pData || {};
     var tPackage = {
@@ -136,9 +136,17 @@
     pData.phase = 2;
 
     if (pBottomUp === true) {
-      tCurrentNode.processBottomUp('broadcastCue', tPackage);
+      if (pLastToFirst === true) {
+        tCurrentNode.processBottomUpLastToFirst('broadcastCue', tPackage);
+      } else {
+        tCurrentNode.processBottomUpFirstToLast('broadcastCue', tPackage);
+      }
     } else {
-      tCurrentNode.processTopDown('broadcastCue', tPackage);
+      if (pLastToFirst === true) {
+        tCurrentNode.processTopDownLastToFirst('broadcastCue', tPackage);
+      } else {
+        tCurrentNode.processTopDownFirstToLast('broadcastCue', tPackage);
+      }
     }
   };
 

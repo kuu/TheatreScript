@@ -126,7 +126,7 @@
    * @param {string} pKey
    * @param {Object=} pData Arbitrary data to pass.
    */
-  TreeNode.prototype.processTopDown = function(pKey, pData) {
+  TreeNode.prototype.processTopDownFirstToLast = function(pKey, pData) {
     /** @type {function} */
     var tProc = mSimpleProcs[pKey];
     /** @type {Array.<TreeNode>} */
@@ -145,7 +145,7 @@
 
     // child nodes
     for (i = 0, il = tChildNodes.length; i < il; ++i) {
-      tChildNodes[i].processTopDown(pKey, pData);
+      tChildNodes[i].processTopDownFirstToLast(pKey, pData);
     }
   };
 
@@ -153,7 +153,34 @@
    * @param {string} pKey
    * @param {Object=} pData Arbitrary data to pass.
    */
-  TreeNode.prototype.processBottomUp = function(pKey, pData) {
+  TreeNode.prototype.processTopDownLastToFirst = function(pKey, pData) {
+    /** @type {function} */
+    var tProc = mSimpleProcs[pKey];
+    /** @type {Array.<TreeNode>} */
+    var tChildNodes = this.childNodes.slice(0);
+    /** @type {number} */
+    var i;
+    /** @type {number} */
+    var il;
+
+    if (tProc === void 0) {
+      throw new Error('No simple process named ' + pKey);
+    }
+
+    // current node
+    tProc.call(this, pData);
+
+    // child nodes
+    for (i = tChildNodes.length - 1; i >= 0; i--) {
+      tChildNodes[i].processTopDownLastToFirst(pKey, pData);
+    }
+  };
+
+  /**
+   * @param {string} pKey
+   * @param {Object=} pData Arbitrary data to pass.
+   */
+  TreeNode.prototype.processBottomUpFirstToLast = function(pKey, pData) {
     /** @type {function} */
     var tProc = mSimpleProcs[pKey];
     /** @type {Array.<TreeNode>} */
@@ -169,7 +196,34 @@
 
     // child nodes
     for (i = 0, il = tChildNodes.length; i < il; ++i) {
-      tChildNodes[i].processBottomUp(pKey, pData);
+      tChildNodes[i].processBottomUpFirstToLast(pKey, pData);
+    }
+
+    // current node
+    tProc.call(this, pData);
+  };
+
+  /**
+   * @param {string} pKey
+   * @param {Object=} pData Arbitrary data to pass.
+   */
+  TreeNode.prototype.processBottomUpLastToFirst = function(pKey, pData) {
+    /** @type {function} */
+    var tProc = mSimpleProcs[pKey];
+    /** @type {Array.<TreeNode>} */
+    var tChildNodes = this.childNodes.slice(0);
+    /** @type {number} */
+    var i;
+    /** @type {number} */
+    var il;
+
+    if (tProc === void 0) {
+      throw new Error('No simple process named ' + pKey);
+    }
+
+    // child nodes
+    for (i = tChildNodes.length - 1; i >= 0; i--) {
+      tChildNodes[i].processBottomUpLastToFirst(pKey, pData);
     }
 
     // current node

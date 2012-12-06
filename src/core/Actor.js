@@ -8,6 +8,7 @@
 (function(global) {
 
   var theatre = global.theatre,
+      Stage = theatre.Stage,
       Matrix = theatre.Matrix,
       max = global.Math.max,
       TreeNode = theatre.TreeNode;
@@ -22,12 +23,27 @@
       return;
     }
 
-    tActor.stage = tActor.parent.stage;
+    var tStage = tActor.stage = tActor.parent.stage;
 
     tActor.cue('enter');
 
-    tActor.startActing(pDoStep);
-    tActor.invalidate();
+    if (tStage.isOpen === false) {
+      tActor.startActing(false);
+    } else {
+      tActor._ignoreUpdate = true;
+
+      tActor.startActing(pDoStep);
+      tActor.invalidate();
+
+      tActor.parent.on('update', function updateMe(pData) {
+        if (pData.updateWasIgnored === true) {
+          return;
+        }
+
+        this.ignore('update', updateMe);
+        tActor.cue('update');
+      });
+    }
   });
 
   TreeNode.registerSimpleProcess('onActorLeave', function() {
@@ -42,15 +58,22 @@
     tActor.stage = null;
   });
 
-  function onPrepare() {
+  function onPrepare(pData) {
     if (this.isActing === true) {
       this.step(1);
     }
   }
 
-  function onUpdate() {
-    var tCurrentScene = this._currentScene;
-    if (this.isActing === true && (tCurrentScene.previousStep === -2 || tCurrentScene.length > 1)) {
+  function onUpdate(pData) {
+    if (this.isActing === true) {
+      if (this._ignoreUpdate === true) {
+        this._ignoreUpdate = false;
+        pData.updateWasIgnored = true;
+        return;
+      }
+
+      pData.updateWasIgnored = false;
+
       this.scheduleScripts();
     }
   }
@@ -90,7 +113,6 @@
      * @type {theatre.Stage}
      */
     this.stage = null;
-
     /**
      * The Matrix for the position of this Actor.
      * @type {theatre.Matrix}
@@ -128,6 +150,8 @@
      * @type {theatre.Actor}
      */
     this.parent = null;
+
+    this._ignoreUpdate = false;
 
     /**
      * Maps layers to child Actors
@@ -292,13 +316,15 @@
      * @param {string} pName The type of cue.
      * @param {Object=} pData Data to send with the cue if any.
      * @param {bool=false} pBottomUp Process bottom up if true, top down if false.
+     * @param {bool=false} pLastToFirst Process siblings last to first if true.
+     *                                  Last to first if false.
      */
-    broadcast: function(pName, pData, pBottomUp) {
+    broadcast: function(pName, pData, pBottomUp, pLastToFirst) {
       if (this.stage === null) {
         return;
       }
 
-      this.stage._cueManager.broadcast(pName, pData, this, pBottomUp);
+      this.stage._cueManager.broadcast(pName, pData, this, pBottomUp, pLastToFirst);
     },
 
     /**
@@ -444,7 +470,7 @@
       if (typeof pStep !== 'number') {
         pStep = tScene.currentStep;
       }
-      if (pContext === void 0) {
+      if (!pContext) {
         pContext = this;
       }
 
@@ -452,7 +478,7 @@
       tScene = null;
 
       this.stage.scheduleScript(function() {
-        if (pContext.isActing === true) {
+        if (pContext.stage !== null) {
           tSelf.doScripts(pStep, pContext, pSceneName);
         }
       });
@@ -536,7 +562,7 @@
 
         if (pDoStep === true) {
           this.cue('prepare');
-          this.cue('update');
+          //this.cue('update');
         }
       }
     },
@@ -722,6 +748,12 @@
      * @param {number} pDelta
      */
     step: function(pDelta) {
+      var tSelf = this;
+
+      if (this.stage === null || this.stage.isOpen === false) {
+        return;
+      }
+
       var tScene = this._currentScene;
       var tPreviousStep = tScene.currentStep;
       var tScripts = tScene.scripts;
@@ -734,6 +766,7 @@
       if (tCurrentStep >= tLength) {
         if (tScene.shouldLoop === false || tLength === 1) {
           tScene.currentStep = tLength - 1;
+          this.stopActing();
           return;
         }
         tCurrentStep = tScene.currentStep -= tLength;
@@ -742,20 +775,18 @@
       }
 
       if (pDelta < 0) {
-        tScene.previousStep = tPreviousStep = -1;
+        tPreviousStep = tScene.previousStep = tCurrentStep - 1;
       } else {
         tScene.previousStep = tPreviousStep;
       }
 
       if (tPreviousStep === tCurrentStep) {
-        if (tLooped === true) {
-          executeScripts(this, tScripts[0], tCurrentStep);
-          throw new Error();
-        }
+        throw new Error();
       }
 
       for (i = tPreviousStep + 1, il = tCurrentStep; i <= il; i++) {
         tData = {
+          delta: pDelta,
           currentStep: i,
           targetStep: tCurrentStep,
           looped: tLooped
@@ -818,7 +849,7 @@
       this._layerToActorMap['' + pLayer] = pActor;
 
       if (tStage !== null) {
-        tNode.processTopDown('onActorEnter', pDoStep);
+        tNode.processTopDownFirstToLast('onActorEnter', pDoStep);
       }
 
       return this;
@@ -874,7 +905,7 @@
       this.parent.invalidate();
 
       if (this.stage !== null) {
-        tNode.processBottomUp('onActorLeave');
+        tNode.processBottomUpFirstToLast('onActorLeave');
       }
 
       tNode.parentNode.removeChild(tNode);

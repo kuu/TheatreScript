@@ -74,13 +74,6 @@
      */
     this._scheduledFunctions = [];
 
-    /**
-     * Scripts that are scheduled to be executed on the next pass.
-     * @type {Array.<Function>}
-     * @private
-     */
-    this._scheduledScripts = [];
-
     // Public members
 
     /**
@@ -102,6 +95,8 @@
     this.keyManager = new theatre.KeyManager(this);
 
     this.motionManager = new theatre.MotionManager(this);
+
+    this.scheduler = new theatre.Scheduler();
 
     var tStageManager;
 
@@ -140,6 +135,10 @@
    * @this {theatre.Stage}
    */
   function runScheduledFunctions() {
+    if (this.isOpen === false) {
+      return;
+    }
+
     var i, il;
     var tScheduledFunctions = this._scheduledFunctions.splice(0, this._scheduledFunctions.length);
 
@@ -194,7 +193,6 @@
    */
   Stage._actorNameCounter = 1;
 
-
   Stage.prototype = /** @lends theatre.Stage# */ {
 
     /**
@@ -217,7 +215,7 @@
         return;
       }
       this.isOpen = true;
-      this.timer = setTimeout(tickCallback, this.stepRate, this);
+      this.timer = setTimeout(tickCallback, 0, this);
     },
 
     /**
@@ -256,8 +254,16 @@
      * Schedules a script to be run.
      * @param {Function} pScript
      */
-    scheduleScript: function(pScript) {
-      this._scheduledScripts.push(pScript);
+    scheduleScript: function(pScript, pLevel) {
+      this.scheduler.add(pScript, pLevel);
+    },
+
+    doScheduledScripts: function(pReverse, pHighPriorityFirst) {
+      var tScheduler = this.scheduler;
+
+      while (tScheduler.hasScripts) {
+        tScheduler.run(pReverse, pHighPriorityFirst);
+      }
     },
 
     /**
@@ -268,32 +274,22 @@
      * @todo Need to implement this correctly.
      */
     step: function() {
-      var i, il;
-      var tScripts = this._scheduledScripts.slice(0);
-
-      this._scheduledScripts = [];
-
-      for (i = 0, il = tScripts.length; i < il; i++) {
-        tScripts[i]();
+      if (this.isOpen === false) {
+        return;
       }
 
-      // Run all prepared scripts from top down.
-      this.broadcast('prepare', null, false);
+      this.doScheduledScripts();
 
-      // Run all enterstep handlers from top down.
-      this.broadcast('enterstep', null, false);
+      // Run all prepared scripts from top down first to last.
+      this.broadcast('prepare', null, false, false);
 
-      // Run all update handlers from bottom up.
-      this.broadcast('update', null, true);
+      // Run all enterstep handlers from top down first to last.
+      this.broadcast('enterstep', null, false, false);
 
-      tScripts = this._scheduledScripts.slice(0);
-      this._scheduledScripts = [];
+      // Run all update handlers from bottom up last to first.
+      this.broadcast('update', null, true, true);
 
-      for (i = 0, il = tScripts.length; i < il; i++) {
-        tScripts[i]();
-      }
-
-      tScripts = null;
+      this.doScheduledScripts(false, false);
 
       if (this._animationFrameId === null && this._scheduledFunctions.length !== 0) {
         this._animationFrameId = mRequestAnimationFrame((function(pContext) {
@@ -303,8 +299,8 @@
         })(this));
       }
 
-      // Run all leavestep handlers from top down.
-      this.broadcast('leavestep', null, false);
+      // Run all leavestep handlers from top down first to last.
+      this.broadcast('leavestep', null, false, false);
     },
 
     /**
@@ -344,9 +340,11 @@
      * @param {string} pName The type of cue.
      * @param {Object=} pData Data to send with the cue if any.
      * @param {bool=false} pBottomUp Process bottom up if true, top down if false.
+     * @param {bool=false} pLastToFirst Process siblings last to first if true.
+     *                                  Last to first if false.
      */
-    broadcast: function(pName, pData, pBottomUp) {
-      this._cueManager.broadcast(pName, pData, null, pBottomUp);
+    broadcast: function(pName, pData, pBottomUp, pLastToFirst) {
+      this._cueManager.broadcast(pName, pData, null, pBottomUp, pLastToFirst);
     }
   };
 

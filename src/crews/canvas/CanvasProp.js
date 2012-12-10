@@ -109,6 +109,18 @@
     return tCacheId;
   };
 
+  CanvasProp.prototype.clearCache = function() {
+    var tClassCacheId = this.__proto__._classDrawingCache;
+    var tInstanceCacheId = this._drawingCache;
+    if (tClassCacheId !== null) {
+      mCache.release(tClassCacheId);
+    }
+    if (tInstanceCacheId !== null && tInstanceCacheId !== tClassCacheId) {
+      mCache.release(tInstanceCacheId);
+    }
+    this.__proto__._classDrawingCache = this._drawingCache = null;
+  };
+
   /**
    * Called right before drawing the actual child.
    * @param {Object} pData The data passed.

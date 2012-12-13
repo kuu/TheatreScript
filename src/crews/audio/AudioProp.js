@@ -9,7 +9,7 @@
 
   var theatre = global.theatre;
   var mAudioContext;
-  if (webkitAudioContext) {
+  if ('webkitAudioContext' in global) {
     mAudioContext = new webkitAudioContext();
   }
 

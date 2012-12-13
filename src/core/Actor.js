@@ -55,6 +55,12 @@
     tActor.cue('leave');
 
     tActor.stopActing();
+
+    tActor.step(-tActor.currentStep);
+
+    tActor._currentScene.currentStep = -1;
+    tActor._currentScene.previousStep = -2;
+
     tActor.stage = null;
   });
 
@@ -781,7 +787,7 @@
       }
 
       if (tPreviousStep === tCurrentStep) {
-        throw new Error();
+        return;
       }
 
       for (i = tPreviousStep + 1, il = tCurrentStep; i <= il; i++) {
@@ -843,6 +849,12 @@
       if (pActor._name === null) {
         pActor.name = 'instance' + theatre.Stage._actorNameCounter++;
       } else {
+        if (pActor._name in this._nameToActorMap) {
+          this.treeNode.removeChild(tNode);
+          pActor.stage = null;
+          pActor.parent = null;
+          throw new Error('An Actor with the same name already exists.');
+        }
         this._nameToActorMap[pActor._name] = pActor;
       }
 
@@ -898,22 +910,19 @@
     leave: function() {
       var tNode = this.treeNode;
 
-      if (this.parent === null) {
-        return;
-      }
-
-      this.parent.invalidate();
-
-      if (this.stage !== null) {
+      if (tNode.parentNode !== null) {
         tNode.processBottomUpFirstToLast('onActorLeave');
+        tNode.parentNode.removeChild(tNode);
       }
 
-      tNode.parentNode.removeChild(tNode);
+      if (this.parent !== null) {
+        this.parent.invalidate();
 
-      delete this.parent._layerToActorMap['' + this.layer];
-      delete this.parent._nameToActorMap[this.name];
+        delete this.parent._layerToActorMap['' + this.layer];
+        delete this.parent._nameToActorMap[this.name];
 
-      this.parent = null;
+        this.parent = null;
+      }
     },
 
     /**
@@ -925,9 +934,13 @@
       return this._name;
     },
     set name(pValue) {
-      if (this.parent !== null) {
-        delete this.parent._nameToActorMap[this._name];
-        this.parent._nameToActorMap[pValue] = this;
+      var tParent = this.parent;
+      if (tParent !== null) {
+        if (pValue in tParent._nameToActorMap) {
+          throw new Error('An Actor with the same name already exists.');
+        }
+        delete tParent._nameToActorMap[this._name];
+        tParent._nameToActorMap[pValue] = this;
       }
       this._name = pValue;
     },

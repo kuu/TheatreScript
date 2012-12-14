@@ -16,7 +16,7 @@
   theatre.define('theatre.Actor', Actor);
 
 
-  TreeNode.registerSimpleProcess('onActorEnter', function(pDoStep) {
+  TreeNode.registerSimpleProcess('onActorEnter', function(pScheduleNow) {
     var tActor = this.actor;
 
     if (tActor.parent === null) {
@@ -25,24 +25,26 @@
 
     var tStage = tActor.stage = tActor.parent.stage;
 
+    tStage.registerActor(tActor);
+
     tActor.cue('enter');
+
+    if (!pScheduleNow) {
+      tActor.parent.on('scheduledscripts', function onScheduledScripts() {
+        this.ignore('scheduledscripts', onScheduledScripts);
+        tActor.scheduleScripts();
+        tActor.cue('scheduledscripts');
+      });
+    }
 
     if (tStage.isOpen === false) {
       tActor.startActing(false);
     } else {
-      tActor._ignoreUpdate = true;
-
-      tActor.startActing(pDoStep);
+      tActor.startActing();
       tActor.invalidate();
-
-      tActor.parent.on('update', function updateMe(pData) {
-        if (pData.updateWasIgnored === true) {
-          return;
-        }
-
-        this.ignore('update', updateMe);
-        tActor.cue('update');
-      });
+      if (pScheduleNow === true) {
+        tActor.scheduleScripts();
+      }
     }
   });
 
@@ -61,26 +63,14 @@
     tActor._currentScene.currentStep = -1;
     tActor._currentScene.previousStep = -2;
 
+    tActor.stage.unregisterActor(tActor);
+
     tActor.stage = null;
   });
 
   function onPrepare(pData) {
     if (this.isActing === true) {
       this.step(1);
-    }
-  }
-
-  function onUpdate(pData) {
-    if (this.isActing === true) {
-      if (this._ignoreUpdate === true) {
-        this._ignoreUpdate = false;
-        pData.updateWasIgnored = true;
-        return;
-      }
-
-      pData.updateWasIgnored = false;
-
-      this.scheduleScripts();
     }
   }
 
@@ -156,8 +146,6 @@
      * @type {theatre.Actor}
      */
     this.parent = null;
-
-    this._ignoreUpdate = false;
 
     /**
      * Maps layers to child Actors
@@ -561,7 +549,6 @@
     startActing: function(pDoStep) {
       if (this.isActing === false) {
         this.on('prepare', onPrepare);
-        this.on('update', onUpdate);
         this.isActing = true;
 
         if (typeof pDoStep !== 'boolean') {
@@ -570,7 +557,6 @@
 
         if (pDoStep === true) {
           this.cue('prepare');
-          //this.cue('update');
         }
       }
     },
@@ -583,7 +569,6 @@
     stopActing: function() {
       if (this.isActing === true) {
         this.ignore('prepare', onPrepare);
-        this.ignore('update', onUpdate);
         this.isActing = false;
       }
     },
@@ -820,13 +805,13 @@
      * @return {theatre.Actor} This Actor.
      * @todo Make the layer counter smart.
      */
-    addActor: function(pActor, pLayer, pDoStep) {
+    addActor: function(pActor, pLayer, pScheduleNow) {
       var tName;
       var tStage = this.stage;
       var tNode = pActor.treeNode;
 
-      if (typeof pDoStep !== 'boolean') {
-        pDoStep = true;
+      if (typeof pScheduleNow !== 'boolean') {
+        pScheduleNow = false;
       }
 
       if (pActor._ctorCalled !== true) {
@@ -848,9 +833,7 @@
       pActor.stage = tStage;
       pActor.parent = this;
 
-      if (pActor._name === null) {
-        pActor.name = 'instance' + theatre.Stage._actorNameCounter++;
-      } else {
+      if (pActor._name !== null) {
         if (this._nameToActorMap[pActor._name] === void 0) {
           this._nameToActorMap[pActor._name] = new Array();
         }
@@ -860,7 +843,7 @@
       this._layerToActorMap['' + pLayer] = pActor;
 
       if (tStage !== null) {
-        tNode.processTopDownFirstToLast('onActorEnter', pDoStep);
+        tNode.processTopDownFirstToLast('onActorEnter', pScheduleNow);
       }
 
       return this;
@@ -918,7 +901,7 @@
       }
       // Note that the layer is unique but the name is not.
       for (var i = tActorArray.length - 1; i >= 0; i--) {
-        if (tActorArray[i].layer === this.layer) { 
+        if (tActorArray[i].layer === this.layer) {
           tActorArray.splice(i, 1);
           break;
         }

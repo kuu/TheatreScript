@@ -42,6 +42,8 @@
    */
   var mTimeToStepRegex = /^([\d]+)(ms|[sm])$/;
 
+  var mStageCounter = 0;
+
   /**
    * @constructor
    * @name theatre.Stage
@@ -49,6 +51,8 @@
    */
   function Stage(pOptions) {
     // Private members.
+
+    this.id = ++mStageCounter;
 
     /**
      * The timer reference set by setTimeout.
@@ -84,6 +88,14 @@
      */
     this.stepRate = 1000 / 30;
 
+    /**
+     * @private
+     * @type {Array}
+     */
+    this._actors = [];
+
+    this._registeredActors = [];
+
 
     /**
      * A flag for if this Stage is currently playing or not.
@@ -118,6 +130,8 @@
     });
 
     this.stageManager = new theatre.StageManager();
+
+    this._actors.push(tStageManager);
 
     /**
      * The main cue manager for this Stage.
@@ -185,14 +199,6 @@
     throw new Error('Bad time string');
   };
 
-  /**
-   * An instance counter for actors to create unique ID's
-   * for each Actor instance.
-   * @private
-   * @type {Number}
-   */
-  Stage._actorNameCounter = 1;
-
   Stage.prototype = /** @lends theatre.Stage# */ {
 
     /**
@@ -230,6 +236,20 @@
       clearTimeout(this.timer);
       this.timer = null;
       this.isOpen = false;
+    },
+
+    registerActor: function(pActor) {
+      this._actors.push(pActor);
+      this._registeredActors.push(pActor);
+    },
+
+    unregisterActor: function(pActor) {
+      var tActors = this._actors;
+      var tIndex = tActors.indexOf(pActor);
+
+      if (tIndex !== -1) {
+        this._actors.splice(tIndex, 1);
+      }
     },
 
     /**
@@ -281,10 +301,27 @@
       this.doScheduledScripts();
 
       // Run all prepared scripts from top down first to last.
-      this.broadcast('prepare', null, false, false);
+      this.broadcast('prepare', null, true, true);
 
       // Run all enterstep handlers from top down first to last.
       this.broadcast('enterstep', null, false, false);
+
+      var tActors = this._actors.slice(0);
+      var tActor;
+      var tRegisteredActors = this._registeredActors;
+
+      for (var i = tActors.length - 1; i >= 0; i--) {
+        tActor = tActors[i];
+
+        if (tRegisteredActors.indexOf(tActor) === -1) {
+          if (tActor.isActing === false) {
+            tActor.cue('scheduledscripts');
+            continue;
+          }
+          tActor.scheduleScripts();
+          tActor.cue('scheduledscripts');
+        }
+      }
 
       // Run all update handlers from bottom up last to first.
       this.broadcast('update', null, true, true);
@@ -301,6 +338,8 @@
 
       // Run all leavestep handlers from top down first to last.
       this.broadcast('leavestep', null, false, false);
+
+      tRegisteredActors.length = 0;
     },
 
     /**

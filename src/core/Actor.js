@@ -175,7 +175,9 @@
 
     /**
      * A map of child Actor names to child Actors.
-     * @type {Object.<string, theatre.Actor>}
+     * As multiple children could be added with the same name,
+     *  the value is an array of Actors.
+     * @type {Object.<string, Array<theatre.Actor>>}
      * @private
      */
     this._nameToActorMap = {};
@@ -849,13 +851,10 @@
       if (pActor._name === null) {
         pActor.name = 'instance' + theatre.Stage._actorNameCounter++;
       } else {
-        if (pActor._name in this._nameToActorMap) {
-          this.treeNode.removeChild(tNode);
-          pActor.stage = null;
-          pActor.parent = null;
-          throw new Error('An Actor with the same name already exists.');
+        if (this._nameToActorMap[pActor._name] === void 0) {
+          this._nameToActorMap[pActor._name] = new Array();
         }
-        this._nameToActorMap[pActor._name] = pActor;
+        this._nameToActorMap[pActor._name].push(pActor);
       }
 
       this._layerToActorMap['' + pLayer] = pActor;
@@ -901,7 +900,32 @@
      * @return {theatre.Actor|null} The Actor or null.
      */
     getActorByName: function(pName) {
-      return this._nameToActorMap[pName] || null;
+      if (this._nameToActorMap[pName]) {
+        //  Returns the child added first.
+        return this._nameToActorMap[pName][0];
+      }
+      return null;
+    },
+
+    _removeFromNameToActorMap: function() {
+      var tActorArray;
+
+      if (this.parent === null) {
+        return;
+      }
+      if ((tActorArray = this.parent._nameToActorMap[this._name]) === void 0) {
+        return;
+      }
+      // Note that the layer is unique but the name is not.
+      for (var i = tActorArray.length - 1; i >= 0; i--) {
+        if (tActorArray[i].layer === this.layer) { 
+          tActorArray.splice(i, 1);
+          break;
+        }
+      }
+      if (tActorArray.length === 0) {
+        delete this.parent._nameToActorMap[this._name];
+      }
     },
 
     /**
@@ -919,7 +943,7 @@
         this.parent.invalidate();
 
         delete this.parent._layerToActorMap['' + this.layer];
-        delete this.parent._nameToActorMap[this.name];
+        this._removeFromNameToActorMap();
 
         this.parent = null;
       }
@@ -934,13 +958,13 @@
       return this._name;
     },
     set name(pValue) {
-      var tParent = this.parent;
-      if (tParent !== null) {
-        if (pValue in tParent._nameToActorMap) {
-          throw new Error('An Actor with the same name already exists.');
+      this._removeFromNameToActorMap();
+      if (this.parent !== null) {
+        var tNameToActorMap = this.parent._nameToActorMap;
+        if (tNameToActorMap[pValue] === void 0) {
+          tNameToActorMap[pValue] = new Array();
         }
-        delete tParent._nameToActorMap[this._name];
-        tParent._nameToActorMap[pValue] = this;
+        tNameToActorMap[pValue].push(this);
       }
       this._name = pValue;
     },

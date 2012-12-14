@@ -101,7 +101,7 @@
     // Do nothing. This is for overloading.
   };
 
-  var mPropsToDispatch = {};
+  var mPropsToDispatch =[];
 
   /**
    * Schedules a draw to the Stage.
@@ -110,16 +110,22 @@
    */
   DrawingProp.prototype.dispatchDraw = function(pData) {
     var tPropType = this.type;
+    var tStage = this.actor.stage;
+    var tPropsToDispatchForStage = mPropsToDispatch[tStage.id];
     pData = pData || {};
 
-    if (mPropsToDispatch[tPropType] === void 0) {
-      mPropsToDispatch[tPropType] = true;
+    if (tPropsToDispatchForStage === void 0) {
+      tPropsToDispatchForStage = mPropsToDispatch[tStage.id] = {};
+    }
 
-      this.actor.stage.schedule(function() {
+    if (tPropsToDispatchForStage[tPropType] === void 0) {
+      tPropsToDispatchForStage[tPropType] = true;
+
+      tStage.schedule(function() {
         pData._propType = tPropType;
 
         this.stageManager.treeNode.processTopDownInOut('RenderDrawingProp', pData);
-        delete mPropsToDispatch[tPropType];
+        delete tPropsToDispatchForStage[tPropType];
       });
     }
   };

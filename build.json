@@ -38,6 +38,7 @@
             "Theatre.js",
             "Matrix.js",
             "TreeNode.js",
+            "CueListener.js",
             "CueManager.js",
             "Scheduler.js",
             "Stage.js",

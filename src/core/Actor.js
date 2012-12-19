@@ -38,9 +38,9 @@
     }
 
     if (tStage.isOpen === false) {
-      tActor.startActing(false);
+      tActor.startNextStep();
     } else {
-      tActor.startActing();
+      tActor.start();
       tActor.invalidate();
       if (pScheduleNow === true) {
         tActor.scheduleScripts();
@@ -56,7 +56,7 @@
 
     tActor.cue('leave');
 
-    tActor.stopActing();
+    tActor.stop();
 
     tActor.step(-tActor.currentStep);
 
@@ -336,30 +336,6 @@
     },
 
     /**
-     * Schedules this actor to act it's act function
-     * in the next animation frame.
-     */
-    schedule: function() {
-      if (this.stage === null) {
-        return;
-      }
-
-      var tActor = this;
-
-      this.stage.schedule(function() {
-        tActor.act();
-      });
-    },
-
-    /**
-     * Called via schedule.
-     * Act your Actor inside the animation frame.
-     */
-    act: function() {
-      // Do nothing. Override this.
-    },
-
-    /**
      * Adds a preparation script to the given step.
      * Preparation scripts are scripts that get executed
      * before all other scripts and always get executed
@@ -543,30 +519,29 @@
     /**
      * Makes the Actor start acting and playing
      * it's scripts.
-     * @param {bool=false} pDoStep If true, do not step by 1.
      * @return {theatre.Actor} This Actor.
      */
-    startActing: function(pDoStep) {
+    start: function() {
       if (this.isActing === false) {
         this.on('prepare', onPrepare);
         this.isActing = true;
+        this.cue('prepare');
+      }
+    },
 
-        if (typeof pDoStep !== 'boolean') {
-          pDoStep = true;
-        }
-
-        if (pDoStep === true) {
-          this.cue('prepare');
-        }
+    startNextStep: function() {
+      if (this.isActing === false) {
+        this.on('prepare', onPrepare);
+        this.isActing = true;
       }
     },
 
     /**
-     * Makes the Actor start acting and playing
+     * Makes the Actor stop acting and playing
      * it's scripts.
      * @return {theatre.Actor} This Actor.
      */
-    stopActing: function() {
+    stop: function() {
       if (this.isActing === true) {
         this.ignore('prepare', onPrepare);
         this.isActing = false;
@@ -606,7 +581,7 @@
      * @param {number} pStep The step to go to.
      * @return {theatre.Actor} This Actor.
      */
-    gotoStep: function(pStep) {
+    goto: function(pStep) {
       var tScene = this._currentScene;
       if (pStep >= tScene.length) {
         return false;
@@ -619,43 +594,24 @@
     },
 
     /**
-     * Goes to the given label in the given scene.
-     * This will execute scripts instantly in the label given.
-     * @param {string} pSceneName The scene name.
-     * @param {string} pName The label name.
-     * @return {theatre.Actor} This Actor.
-     */
-    gotoLabelInScene: function(pSceneName, pName) {
-      if ((pSceneName in this._scenes) === false) {
-        return false;
-      }
-
-      this.startActingScene(pSceneName);
-
-      var tScene = this._currentScene;
-      var tStep = tScene.labels[pName];
-
-      if (tStep === void 0 || tStep >= tScene.length) {
-        return false;
-      }
-
-      if (tStep === tScene.currentStep) {
-        return;
-      }
-
-      this.step(tStep - tScene.currentStep);
-      this.scheduleScripts();
-    },
-
-    /**
      * Goes to the given label in the current scene.
      * This will execute scripts instantly in the label given.
      * @param {string} pName The label name.
      * @return {theatre.Actor} This Actor.
      */
-    gotoLabel: function(pName) {
-      var tScene = this._currentScene;
-      var tStep = tScene.labels[pName];
+    gotoLabel: function(pName, pSceneName) {
+      var tScene;
+      var tStep;
+
+      if (pSceneName) {
+        if ((pSceneName in this._scenes) === false) {
+          return false;
+        }
+        this.changeScene(pSceneName);
+      }
+
+      tScene = this._currentScene;
+      tStep = tScene.labels[pName];
 
       if (tStep === void 0 || tStep >= tScene.length) {
         return false;
@@ -676,11 +632,19 @@
      * @param {number} pStep The step for the label to reference.
      * @return {theatre.Actor|null} Returns null on error, otherwise this Actor.
      */
-    setLabelInScene: function(pSceneName, pName, pStep) {
-      if ((pSceneName in this._scenes) === false) {
-        return false;
+    setLabel: function(pName, pStep, pSceneName) {
+      var tScene;
+
+      if (pSceneName) {
+        if ((pSceneName in this._scenes) === false) {
+          return false;
+        }
+        tScene = this._scenes[pSceneName];
+      } else {
+        tScene = this._currentScene;
       }
-      this._scenes[pSceneName].labels[pName] = pStep;
+
+      tScene.labels[pName] = pStep;
     },
 
     /**
@@ -689,11 +653,19 @@
      * @param {string} pName The name of the label to set.
      * @return {theatre.Actor} This Actor.
      */
-    removeLabelFromScene: function(pSceneName, pName) {
-      if ((pSceneName in this._scenes) === false) {
-        return;
+    removeLabel: function(pName, pSceneName) {
+      var tScene;
+
+      if (pSceneName) {
+        if ((pSceneName in this._scenes) === false) {
+          return false;
+        }
+        tScene = this._scenes[pSceneName];
+      } else {
+        tScene = this._currentScene;
       }
-      delete this._scenes[pSceneName].labels[pName];
+
+      delete tScene.labels[pName];
     },
 
     /**
@@ -702,14 +674,25 @@
      * @param {string} pName The name of the label to get.
      * @return {number|null} The step or null if the label doesn't exist.
      */
-    getLabelStepFromScene: function(pSceneName, pName) {
-      if ((pSceneName in this._scenes) === false) {
-        return null;
+    getLabelStep: function(pName, pSceneName) {
+      var tScene;
+      var tStep;
+
+      if (pSceneName) {
+        if ((pSceneName in this._scenes) === false) {
+          return null;
+        }
+        tScene = this._scenes[pSceneName];
+      } else {
+        tScene = this._currentScene;
       }
-      var tStep = this._scenes[pSceneName].labels[pName];
+
+      tStep = tScene.labels[pName];
+
       if (tStep === void 0) {
         return null;
       }
+
       return tStep;
     },
 
@@ -718,7 +701,7 @@
      * @param {string} pSceneName The scene to start acting.
      * @return {theatre.Actor} This Actor.
      */
-    startActingScene: function(pSceneName) {
+    changeScene: function(pSceneName) {
       if ((pSceneName in this._scenes) === false) {
         throw new Error('Scene doesn\'t exist: ' + pSceneName);
       }
@@ -732,7 +715,7 @@
       this._currentScene.isActing = false;
       var tScene = this._scenes[pSceneName];
       this._currentScene = tScene;
-      this.startActing();
+      this.start();
     },
 
     /**
@@ -759,7 +742,7 @@
       if (tCurrentStep >= tLength) {
         if (tScene.shouldLoop === false || tLength === 1) {
           tScene.currentStep = tLength - 1;
-          this.stopActing();
+          this.stop();
           return;
         }
         tCurrentStep = tScene.currentStep -= tLength;
@@ -809,6 +792,7 @@
       var tName;
       var tStage = this.stage;
       var tNode = pActor.treeNode;
+      var tNameToActorMap;
 
       if (typeof pScheduleNow !== 'boolean') {
         pScheduleNow = false;
@@ -834,10 +818,12 @@
       pActor.parent = this;
 
       if (pActor._name !== null) {
-        if (this._nameToActorMap[pActor._name] === void 0) {
-          this._nameToActorMap[pActor._name] = new Array();
+        tNameToActorMap = this._nameToActorMap;
+        if (!(pActor._name in tNameToActorMap)) {
+          tNameToActorMap[pActor._name] = [pActor];
+        } else {
+          tNameToActorMap[pActor._name].push(pActor);
         }
-        this._nameToActorMap[pActor._name].push(pActor);
       }
 
       this._layerToActorMap['' + pLayer] = pActor;
@@ -883,10 +869,11 @@
      * @return {theatre.Actor|null} The Actor or null.
      */
     getActorByName: function(pName) {
-      if (this._nameToActorMap[pName]) {
+      if (pName in this._nameToActorMap) {
         //  Returns the child added first.
         return this._nameToActorMap[pName][0];
       }
+
       return null;
     },
 
@@ -945,9 +932,10 @@
       if (this.parent !== null) {
         var tNameToActorMap = this.parent._nameToActorMap;
         if (tNameToActorMap[pValue] === void 0) {
-          tNameToActorMap[pValue] = new Array();
+          tNameToActorMap[pValue] = [this];
+        } else {
+          tNameToActorMap[pValue].push(this);
         }
-        tNameToActorMap[pValue].push(this);
       }
       this._name = pValue;
     },

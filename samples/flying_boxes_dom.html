@@ -23,7 +23,8 @@
         this.vX = (random() * mWidth * .05 | 0) - (mWidth * .025);
         this.vY = (random() * mHeight * .05 | 0) - (mHeight * .025);
         this.stepsLeft = this.stage.timeToStep('1s');
-        this.ignore('update', onUpdate).on('update', onUpdate);
+        this.ignore('update', onUpdate)
+        this.on('update', onUpdate);
       }
 
       function onUpdate() {
@@ -90,7 +91,7 @@
       }
 
       document.addEventListener('click', function() {
-        tStage.cue('move');
+        tStage.broadcast('move');
       }, false);
 
       tStage.open();

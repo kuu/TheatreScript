@@ -78,6 +78,8 @@
      */
     this._scheduledFunctions = [];
 
+    this._scheduledScripts = [];
+
     // Public members
 
     /**
@@ -107,8 +109,6 @@
     this.keyManager = new theatre.KeyManager(this);
 
     this.motionManager = new theatre.MotionManager(this);
-
-    this.scheduler = new theatre.Scheduler();
 
     var tStageManager;
 
@@ -140,7 +140,7 @@
      */
     this._cueManager = new theatre.CueManager(tStageManager.treeNode);
 
-    tStageManager.startActing();
+    tStageManager.start();
   }
 
 
@@ -274,15 +274,24 @@
      * Schedules a script to be run.
      * @param {Function} pScript
      */
-    scheduleScript: function(pScript, pLevel) {
-      this.scheduler.add(pScript, pLevel);
+    scheduleScript: function(pScript) {
+      this._scheduledScripts.push(pScript);
     },
 
     doScheduledScripts: function(pReverse, pHighPriorityFirst) {
-      var tScheduler = this.scheduler;
+      var tStageScripts = this._scheduledScripts;
+      var tLength = tStageScripts.length;
+      var tScripts;
+      var i;
 
-      while (tScheduler.hasScripts) {
-        tScheduler.run(pReverse, pHighPriorityFirst);
+      while (tLength !== 0) {
+        tScripts = tStageScripts.splice(0, tLength);
+
+        for (i = 0; i < tLength; i++) {
+          tScripts[i]();
+        }
+
+        tLength = tStageScripts.length;
       }
     },
 
@@ -326,7 +335,7 @@
       // Run all update handlers from bottom up last to first.
       this.broadcast('update', null, true, true);
 
-      this.doScheduledScripts(false, false);
+      this.doScheduledScripts();
 
       if (this._animationFrameId === null && this._scheduledFunctions.length !== 0) {
         this._animationFrameId = mRequestAnimationFrame((function(pContext) {

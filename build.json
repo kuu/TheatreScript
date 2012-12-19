@@ -40,7 +40,6 @@
             "TreeNode.js",
             "CueListener.js",
             "CueManager.js",
-            "Scheduler.js",
             "Stage.js",
             "Actor.js",
             "Prop.js",

@@ -9,14 +9,24 @@
 
   var theatre = global.theatre;
 
-  theatre.define('MediaProp', MediaProp, theatre);
+  /**
+   * @class
+   * @extends {theatre.Prop}
+   */
+  var MediaProp = (function(pSuper) {
+    function MediaProp() {
+      pSuper.call(this);
+      this.playbackState = MediaProp.PLAYBACK_STATE_NOT_READY;
+      this.callbacks = {endOfStream: []};
+    }
 
-  function MediaProp() {
-    this.base();
-    this.playbackState = MediaProp.PLAYBACK_STATE_NOT_READY;
-    this.callbacks = {endOfStream: []};
-  }
-  theatre.inherit(MediaProp, theatre.Prop);
+    MediaProp.prototype = Object.create(pSuper.prototype);
+    MediaProp.prototype.constructor = MediaProp;
+
+    return MediaProp;
+  })(theatre.Prop);
+
+  theatre.MediaProp = MediaProp;
 
   MediaProp.prototype.type = 'Media';
 

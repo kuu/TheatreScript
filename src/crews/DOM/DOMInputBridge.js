@@ -10,10 +10,12 @@
   var theatre = global.theatre;
   var document = global.document;
 
-  theatre.define('crews.dom.enableKeyInput', enableKeyInput, theatre);
-  theatre.define('crews.dom.disableKeyInput', disableKeyInput, theatre);
-  theatre.define('crews.dom.enableMotionInput', enableMotionInput, theatre);
-  theatre.define('crews.dom.disableMotionInput', disableMotionInput, theatre);
+  theatre.crews.dom = theatre.crews.dom || {};
+
+  theatre.crews.dom.enableKeyInput = enableKeyInput;
+  theatre.crews.dom.disableKeyInput = disableKeyInput;
+  theatre.crews.dom.enableMotionInput = enableMotionInput;
+  theatre.crews.dom.disableMotionInput = disableMotionInput;
 
   var mKeyStages = [];
   var mMotionStages = [];

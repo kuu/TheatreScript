@@ -9,17 +9,28 @@
 
   var theatre = global.theatre;
 
-  theatre.define('crews.webgl.WebGLProp', WebGLProp, theatre);
-  theatre.define('crews.webgl.GLDrawingState', GLDrawingState, theatre);
+  theatre.crews.webgl = theatre.crews.webgl || {};
+  theatre.crews.webgl.GLDrawingState = GLDrawingState;
 
-  function WebGLProp(pBackingCanvas, pWidth, pHeight) {
-    this.base();
+  /**
+   * @class
+   * @extends {theatre.DrawingProp}
+   */
+  var WebGLProp = (function(pSuper) {
+    function WebGLProp(pBackingCanvas, pWidth, pHeight) {
+      pSuper.call(this);
 
-    this.width = pWidth || pBackingCanvas.width;
-    this.height = pHeight || pBackingCanvas.height;
-    this.backingCanvas = pBackingCanvas;
-  }
-  theatre.inherit(WebGLProp, theatre.DrawingProp);
+      this.width = pWidth || pBackingCanvas.width;
+      this.height = pHeight || pBackingCanvas.height;
+      this.backingCanvas = pBackingCanvas;
+    }
+
+    WebGLProp.prototype = Object.create(pSuper.prototype);
+
+    return WebGLProp;
+  })(theatre.DrawingProp);
+
+  theatre.crews.webgl.WebGLProp = WebGLProp;
 
   var mDrawingPropOnAdd = theatre.DrawingProp.prototype.onAdd;
 
@@ -117,4 +128,4 @@
   WebGLProp.prototype.postDrawChild = function(pData, pChildActor) {
     pData.restore();
   };
-}(this));
+});

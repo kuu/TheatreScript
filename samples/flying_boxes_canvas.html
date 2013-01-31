@@ -45,42 +45,58 @@
         }
       }
 
-      var CanvasProp = theatre.crews.canvas.CanvasProp;
+      var CanvasRenderProp = theatre.crews.render.CanvasRenderProp;
+      var Point = benri.geometry.Point;
+      var Rect = benri.geometry.Rect;
+      var Color = benri.draw.Color;
+      var ColorPaint = benri.draw.ColorPaint;
+
       var tStage = mStage = new theatre.Stage();
-      var tRootActor = new theatre.Actor();
-      tStage.addActor(tRootActor);
-      var tRootCanvasProp = new CanvasProp(mContainer);
-      tRootCanvasProp.cacheDrawResult = false;
-      tRootActor.addProp(tRootCanvasProp);
+      var tRenderContext = new benri.render.CanvasRenderContext(mWidth, mHeight);
+      tRenderContext.canvas.setSurface(mContainer.getBenriJSSurface());
 
-      function FlyingBox(pColor, pWidth, pHeight) {
-        this.base(mContainer, pWidth, pHeight);
-        this.cacheWithClass = false;
-        this.color = pColor;
-      }
-      theatre.inherit(FlyingBox, CanvasProp);
+      var tCompositor = new theatre.crews.render.RenderProp(tRenderContext);
+      tCompositor.render = function() {
+        this.context.clear();
+      };
+      tStage.stageManager.addProp(tCompositor);
 
-      FlyingBox.prototype.draw = function(pData) {
-        var tContext = pData.context;
-        tContext.fillStyle = this.color;
-        tContext.fillRect(0, 0, this.width, this.height);
-      }
+      /**
+       * @class
+       * @extends {theatre.crews.render.CanvasRenderProp}
+       */
+      var FlyingBox = (function(pSuper) {
+        function FlyingBox(pWidth, pHeight, pColor) {
+          pSuper.call(this, tRenderContext, pWidth, pHeight);
+          this.paint = new ColorPaint(pColor);
+          this.canvas.fillRect(new Rect(new Point(0, 0), pWidth, pHeight), this.paint);
+        }
+
+        FlyingBox.prototype = Object.create(pSuper.prototype);
+        FlyingBox.prototype.constructor = FlyingBox;
+
+        return FlyingBox;
+      })(CanvasRenderProp);
+
+
 
       for (var i = 0; i < mNumber; i++) {
         var tActor = new theatre.Actor();
-        var tWidth = random() * mWidth * .05 | 0;
-        var tHeight = random() * mHeight * .05 | 0;
+        var tWidth = random() * mWidth * .05 | 1;
+        var tHeight = random() * mHeight * .05 | 1;
 
-        tRootActor.addActor(tActor);
+        tStage.addActor(tActor);
 
         tActor.addProp(
           new FlyingBox(
-              '#'
-              + (random() * 15 | 0).toString(16)
-              + (random() * 15 | 0).toString(16)
-              + (random() * 15 | 0).toString(16),
             tWidth,
-            tHeight
+            tHeight,
+            new Color(
+              random() * 255 | 0,
+              random() * 255 | 0,
+              random() * 255 | 0,
+              255
+            )
           )
         );
 

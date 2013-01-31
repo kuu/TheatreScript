@@ -11,15 +11,20 @@
 
   /**
    * The overall manager of all Actors on a Stage.
-   * @name theatre.StageManager
-   * @constructor
-   * @extends theatre.Actor
+   * @class
+   * @extends {theatre.Actor}
    */
-  function StageManager() {
-    this.base();
-  }
-  theatre.inherit(StageManager, theatre.Actor);
+  var StageManager = (function(pSuper) {
+    function StageManager() {
+      pSuper.call(this);
+    }
 
-  theatre.define('theatre.StageManager', StageManager);
+    StageManager.prototype = Object.create(pSuper.prototype);
+    StageManager.prototype.constructor = StageManager;
+
+    return StageManager;
+  })(theatre.Actor);
+
+  theatre.StageManager = StageManager;
 
 }(this));

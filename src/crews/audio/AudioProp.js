@@ -8,29 +8,42 @@
 (function(global) {
 
   var theatre = global.theatre;
+
+  theatre.crews.audio = theatre.crews.audio || {};
+
   var mAudioContext;
   if ('webkitAudioContext' in global) {
     mAudioContext = new webkitAudioContext();
   }
 
-  theatre.define('crews.audio.AudioProp', AudioProp, theatre);
-
-  function AudioProp(pId, pAudio) {
-    this.base();
-    this.id = pId;
-    if (mAudioContext) {
-      // Web Audio API
-      console.log('Use Web Audio API.');
-      var tSource = this.sourceNode = mAudioContext.createBufferSource();
-      tSource.buffer = pAudio;
-      tSource.connect(mAudioContext.destination);
-    } else {
-      // HTML Audio Element
-      console.log('Use HTML Audio Element.');
-      this.audioElement = pAudio;
+  /**
+   * @class
+   * @extends {theatre.MediaProp}
+   */
+  var AudioProp = (function(pSuper) {
+    function AudioProp(pId, pAudio) {
+      pSuper.call(this);
+      this.id = pId;
+      if (mAudioContext) {
+        // Web Audio API
+        console.log('Use Web Audio API.');
+        var tSource = this.sourceNode = mAudioContext.createBufferSource();
+        tSource.buffer = pAudio;
+        tSource.connect(mAudioContext.destination);
+      } else {
+        // HTML Audio Element
+        console.log('Use HTML Audio Element.');
+        this.audioElement = pAudio;
+      }
     }
-  }
-  theatre.inherit(AudioProp, theatre.MediaProp);
+
+    AudioProp.prototype = Object.create(pSuper.prototype);
+    AudioProp.prototype.constructor = AudioProp;
+
+    return AudioProp;
+  })(theatre.MediaProp);
+
+  theatre.crews.audio.AudioProp = AudioProp;
 
   AudioProp.prototype.type = 'Audio';
 

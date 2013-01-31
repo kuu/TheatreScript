@@ -9,7 +9,6 @@
 
   var theatre = global.theatre;
 
-  theatre.MotionManager = MotionManager;
   theatre.MotionInput = MotionInput;
 
   function MotionInput() {
@@ -33,10 +32,22 @@
     this.inputs.push(pInput);
   };
 
-  function MotionManager(pStage) {
-    this.base(pStage);
-  };
-  theatre.inherit(MotionManager, theatre.InputManager);
+  /**
+   * @class
+   * @extends {theatre.InputManager}
+   */
+  var MotionManager = (function(pSuper) {
+    function MotionManager(pStage) {
+      pSuper.call(this, pStage);
+    }
+
+    MotionManager.prototype = Object.create(pSuper.prototype);
+    MotionManager.prototype.constructor = MotionManager;
+
+    return MotionManager;
+  })(theatre.InputManager);
+
+  theatre.MotionManager = MotionManager;
 
   MotionManager.prototype.obtain = function(
     pStartTime,

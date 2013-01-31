@@ -9,7 +9,7 @@
 
   var theatre = global.theatre;
 
-  theatre.define('theatre.Stage', Stage);
+  theatre.Stage = Stage;
 
   var mRequestAnimationFrame;
   if (global.requestAnimationFrame !== void 0) {

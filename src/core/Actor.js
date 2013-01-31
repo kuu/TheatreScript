@@ -9,12 +9,11 @@
 
   var theatre = global.theatre,
       Stage = theatre.Stage,
-      Matrix = theatre.Matrix,
+      Matrix = benri.geometry.Matrix2D,
       max = global.Math.max,
       TreeNode = theatre.TreeNode;
 
-  theatre.define('theatre.Actor', Actor);
-
+  theatre.Actor = Actor;
 
   TreeNode.registerSimpleProcess('onActorEnter', function(pScheduleNow) {
     var tActor = this.actor;
@@ -90,12 +89,16 @@
     this.scripts = [new Array(0), new Array(0)];
   }
 
+  var mGlobalIds = 0;
+
   /**
    * The base object for working with something on a stage.
    * @constructor
    * @name theatre.Actor
    */
   function Actor() {
+
+    this.id = ++mGlobalIds;
 
     /**
      * A check to make sure we used inherit properly.
@@ -745,7 +748,7 @@
           this.stop();
           return;
         }
-        tCurrentStep = tScene.currentStep -= tLength;
+        tCurrentStep = tScene.currentStep = 0;
         tPreviousStep = -1;
         tLooped = true;
       }
@@ -1001,7 +1004,7 @@
     },
     set rotation(pValue) {
       this._rotation = pValue;
-      this.matrix = this.matrix.rotateAxisAngle(0, 0, 0, pValue);
+      this.matrix.rotateAxisAngle(0, 0, 0, pValue);
     },
 
     /**
@@ -1013,7 +1016,7 @@
       return this.matrix.a;
     },
     set scaleX(pValue) {
-      this.matrix = this.matrix.scale(pValue, 0);
+      this.matrix.scale(pValue, 0);
     },
 
     /**
@@ -1025,7 +1028,7 @@
       return this.matrix.d;
     },
     set scaleY(pValue) {
-      this.matrix = this.matrix.scale(0, pValue);
+      this.matrix.scale(0, pValue);
     },
 
     /**
@@ -1046,10 +1049,10 @@
         tMatrixStack.push(tActor.matrix);
       }
 
-      var tMatrix = new theatre.Matrix();
+      var tMatrix = new Matrix2D();
 
       for (var i = tMatrixStack.length - 1; i !== -1; i--) {
-        tMatrix = tMatrix.multiply(tMatrixStack[i]);
+        tMatrix.multiply(tMatrixStack[i]);
       }
 
       return tMatrix;

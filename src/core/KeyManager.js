@@ -9,12 +9,22 @@
 
   var theatre = global.theatre;
 
-  theatre.KeyManager = KeyManager;
+  /**
+   * @class
+   * @extends {theatre.InputManager}
+   */
+  var KeyManager = (function(pSuper) {
+    function KeyManager(pStage) {
+      pSuper.call(this, pStage);
+    }
 
-  function KeyManager(pStage) {
-    this.base(pStage);
-  };
-  theatre.inherit(KeyManager, theatre.InputManager);
+    KeyManager.prototype = Object.create(pSuper.prototype);
+    KeyManager.prototype.constructor = KeyManager;
+
+    return KeyManager;
+  })(theatre.InputManager);
+
+  theatre.KeyManager = KeyManager;
 
   KeyManager.prototype.down = function(pUnicode, pAlt, pShift, pCtrl, pMeta, pRepeat) {
     if (this.stage === null) {

@@ -8,26 +8,9 @@
 (function(global) {
 
   global.theatre.TreeNode = TreeNode;
-  global.theatre.ComplexProcess = ComplexProcess;
 
   /** @type {Object.<string, function>} */
   var mSimpleProcs = {};
-
-  /** @type {Object.<string, ComplexProcess>} */
-  var mComplexProcs = {};
-
-  function ComplexProcess() {
-    // Don't do anything
-  }
-
-  ComplexProcess.prototype = {
-    enterSelf: function(pData) {},
-    enterChildren: function(pData) {},
-    enterChild: function(pData) {},
-    exitChild: function(pData) {},
-    exitChildren: function(pData) {},
-    exitSelf: function(pData) {}
-  };
 
   /**
    * A simple tree. Single parent style.
@@ -109,21 +92,6 @@
 
   /**
    * @param {string} pKey
-   * @param {ComplexProcess} pComplexProcess
-   */
-  TreeNode.registerComplexProcess = function(pKey, pComplexProcess) {
-    mComplexProcs[pKey] = pComplexProcess;
-  };
-
-  /**
-   * @param {string} pKey
-   */
-  TreeNode.removeComplexProcess = function(pKey) {
-    delete mComplexProcs[pKey];
-  };
-
-  /**
-   * @param {string} pKey
    * @param {Object=} pData Arbitrary data to pass.
    */
   TreeNode.prototype.processTopDownFirstToLast = function(pKey, pData) {
@@ -141,11 +109,17 @@
     }
 
     // current node
-    tProc.call(this, pData);
+    if (tProc.call(this, pData) === false) {
+      return;
+    }
 
     // child nodes
     for (i = 0, il = tChildNodes.length; i < il; ++i) {
       tChildNodes[i].processTopDownFirstToLast(pKey, pData);
+    }
+
+    if (tProc.onLeave) {
+      tProc.onLeave.call(this, pData);
     }
   };
 
@@ -168,11 +142,17 @@
     }
 
     // current node
-    tProc.call(this, pData);
+    if (tProc.call(this, pData) === false) {
+      return;
+    }
 
     // child nodes
     for (i = tChildNodes.length - 1; i >= 0; i--) {
       tChildNodes[i].processTopDownLastToFirst(pKey, pData);
+    }
+
+    if (tProc.onLeave) {
+      tProc.onLeave.call(this, pData);
     }
   };
 
@@ -201,6 +181,10 @@
 
     // current node
     tProc.call(this, pData);
+
+    if (tProc.onLeave) {
+      tProc.onLeave.call(this, pData);
+    }
   };
 
   /**
@@ -228,52 +212,10 @@
 
     // current node
     tProc.call(this, pData);
-  };
 
-  /**
-   * @param {string} pKey
-   * @param {Object=} pData Arbitrary data to pass.
-   */
-  TreeNode.prototype.processTopDownInOut = function(pKey, pData) {
-    /** @type {ComplexProcess} */
-    var tProc = mComplexProcs[pKey];
-    /** @type {Array.<TreeNode>} */
-    var tChildNodes = this.childNodes.slice(0);
-    /** @type {TreeNode} */
-    var tChildNode;
-    /** @type {number} */
-    var i;
-    /** @type {number} */
-    var il;
-    /** @type {number} */
-    var tNumOfChildren = tChildNodes.length;
-
-    if (tProc === void 0) {
-      throw new Error('No complex process named ' + pKey);
+    if (tProc.onLeave) {
+      tProc.onLeave.call(this, pData);
     }
-
-    // current node, in
-    if (tProc.enterSelf.call(this, pData) === false) {
-      return;
-    }
-
-    // child nodes
-    if (tNumOfChildren > 0) {
-      if (tProc.enterChildren.call(this, pData) !== false) {
-        for (i = 0; i < tNumOfChildren; ++i) {
-          tChildNode = tChildNodes[i];
-          if (tProc.enterChild.call(this, pData, tChildNode) !== false) {
-            tChildNode.processTopDownInOut(pKey, pData);
-            tProc.exitChild.call(this, pData, tChildNode);
-          }
-        }
-
-        tProc.exitChildren.call(this, pData);
-      }
-    }
-
-    // current node, out
-    tProc.exitSelf.call(this, pData);
   };
 
   /**

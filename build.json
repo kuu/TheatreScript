@@ -9,18 +9,34 @@
     "closure-compiler-compilation-level": "WHITESPACE_ONLY"
   },
 
+  "resources": {
+    "Geometry": {
+      "type": "package",
+      "location": "git",
+      "url": "git://github.com/BenriJS/Geometry.git"
+    },
+    "Render": {
+      "type": "package",
+      "location": "git",
+      "url": "git://github.com/BenriJS/Render.git"
+    }
+  },
+
   "targets": {
     "all": {
-      "builder": "closure-compiler",
+      "builder": "js",
       "outputs": "${binDir}/theatrescript.js",
       "resources": [
+        {
+          "type": "reference",
+          "name": "Geometry"
+        },
         {
           "type": "targets",
           "targets": [
             "core",
             "dom-crew",
-            "canvas-crew",
-            "webgl-crew",
+            "render-crew",
             "audio-crew"
           ]
         }
@@ -28,86 +44,77 @@
     },
 
     "core": {
-      "builder": "closure-compiler",
+      "builder": "js",
       "outputs": "${binDir}/core.js",
       "resources": [
         {
           "type": "files",
           "root": "src/core",
-          "files": [
-            "Theatre.js",
-            "Matrix.js",
-            "TreeNode.js",
-            "CueListener.js",
-            "CueManager.js",
-            "Stage.js",
-            "Actor.js",
-            "Prop.js",
-            "StageManager.js",
-            "DrawingProp.js",
-            "MediaProp.js",
-            "InputManager.js",
-            "KeyManager.js",
-            "MotionManager.js"
-          ]
+          "include": ".+"
         }
       ]
     },
 
     "dom-crew": {
-      "builder": "closure-compiler",
+      "builder": "js",
       "outputs": "${binDir}/crews/dom.js",
       "resources": [
         {
           "type": "files",
           "root": "src/crews/DOM",
-          "files": [
-            "DOMProp.js",
-            "DOMInputBridge.js"
-          ]
+          "include": ".+"
+        }
+      ]
+    },
+
+    "render-crew": {
+      "builder": "js",
+      "outputs": "${binDir}/render/render.js",
+      "resources": [
+        {
+          "type": "reference",
+          "name": "Render"
+        },
+        {
+          "type": "files",
+          "root": "src/crews/render",
+          "include": ".+"
         }
       ]
     },
 
     "canvas-crew": {
-      "builder": "closure-compiler",
+      "builder": "js",
       "outputs": "${binDir}/crews/canvas.js",
       "resources": [
         {
           "type": "files",
           "root": "src/crews/canvas",
-          "files": [
-            "cache.js",
-            "CanvasProp.js"
-          ]
+          "include": ".+"
         }
       ]
     },
 
     "webgl-crew": {
-      "builder": "closure-compiler",
+      "builder": "js",
       "outputs": "${binDir}/crews/webgl.js",
       "resources": [
         {
           "type": "files",
           "root": "src/crews/webgl",
-          "files": [
-            "WebGLProp.js"
-          ]
+          "include": ".+"
         }
       ]
     },
 
     "audio-crew": {
-      "builder": "closure-compiler",
+      "builder": "js",
       "outputs": "${binDir}/crews/audio.js",
       "resources": [
         {
           "type": "files",
           "root": "src/crews/audio",
-          "files": [
-            "AudioProp.js"
-          ]
+          "include": ".+"
         }
       ]
     }

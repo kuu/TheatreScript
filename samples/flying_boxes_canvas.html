@@ -30,13 +30,20 @@
       }
 
       function onUpdate() {
-        this.x += this.vX;
-        this.y += this.vY;
+        var tNewX, tNewY;
 
-        if (this.x <= 0) this.x = 0;
-        if (this.y <= 0) this.y = 0;
-        if (this.x >= mWidth - this.width) this.x = mWidth - this.width;
-        if (this.y >= mHeight - this.height) this.y = mHeight - this.height;
+        this.translate(this.vX, this.vY);
+
+        tNewX = this.getX();
+        tNewY = this.getY();
+
+        if (tNewX <= 0) tNewX = 0;
+        if (tNewY <= 0) tNewY = 0;
+        if (tNewX >= mWidth - this.width) tNewX = mWidth - this.width;
+        if (tNewY >= mHeight - this.height) tNewY = mHeight - this.height;
+
+        this.setX(tNewX);
+        this.setY(tNewY);
 
         this.invalidate();
 
@@ -49,11 +56,11 @@
       var Point = benri.geometry.Point;
       var Rect = benri.geometry.Rect;
       var Color = benri.draw.Color;
-      var ColorPaint = benri.draw.ColorPaint;
+      var Style = benri.draw.Style;
 
       var tStage = mStage = new theatre.Stage();
-      var tRenderContext = new benri.render.CanvasRenderContext(mWidth, mHeight);
-      tRenderContext.canvas.setSurface(mContainer.getBenriJSSurface());
+      var tRenderContext = new benri.render.platform.canvas.CanvasRenderContext(mWidth, mHeight);
+      tRenderContext.buffers[0].data.setSurface(mContainer.getBenriJSSurface());
 
       var tCompositor = new theatre.crews.render.RenderProp(tRenderContext);
       tCompositor.render = function() {
@@ -68,8 +75,9 @@
       var FlyingBox = (function(pSuper) {
         function FlyingBox(pWidth, pHeight, pColor) {
           pSuper.call(this, tRenderContext, pWidth, pHeight);
-          this.paint = new ColorPaint(pColor);
-          this.canvas.fillRect(new Rect(new Point(0, 0), pWidth, pHeight), this.paint);
+          var tStyle = new Style();
+          tStyle.setColor(pColor);
+          this.canvas.fillRect(new Rect(new Point(0, 0), pWidth, pHeight), tStyle);
         }
 
         FlyingBox.prototype = Object.create(pSuper.prototype);
@@ -101,8 +109,8 @@
         );
 
         tActor.on('move', onMove);
-        tActor.x = (random() * mWidth - tWidth) | 0;
-        tActor.y = (random() * mHeight - tHeight) | 0;
+        tActor.setX((random() * mWidth - tWidth) | 0);
+        tActor.setY((random() * mHeight - tHeight) | 0);
 
         tActor.invalidate();
       }

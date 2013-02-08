@@ -28,7 +28,7 @@
     CanvasRenderProp.prototype.constructor = CanvasRenderProp;
 
     CanvasRenderProp.prototype.render = function(pData) {
-      this.context.render(this.renderable);
+      this.renderable.render(this.context);
     };
 
     return CanvasRenderProp;

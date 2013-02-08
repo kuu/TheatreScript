@@ -9,7 +9,7 @@
 
   var theatre = global.theatre,
       Stage = theatre.Stage,
-      Matrix = benri.geometry.Matrix2D,
+      Matrix2D = global.benri.geometry.Matrix2D,
       max = global.Math.max,
       TreeNode = theatre.TreeNode;
 
@@ -100,6 +100,8 @@
 
     this.id = ++mGlobalIds;
 
+    Matrix2D.initExtention(this);
+
     /**
      * A check to make sure we used inherit properly.
      * @type {boolean}
@@ -112,11 +114,6 @@
      * @type {theatre.Stage}
      */
     this.stage = null;
-    /**
-     * The Matrix for the position of this Actor.
-     * @type {theatre.Matrix}
-     */
-    this.matrix = new Matrix();
 
     /**
      * The layer this Actor is on.
@@ -971,70 +968,8 @@
     },
 
     /**
-     * The current X position of this Actor.
-     * @field
-     * @type number
-     */
-    get x() {
-      return this.matrix.e;
-    },
-    set x(pValue) {
-      this.matrix.e = pValue;
-    },
-
-    /**
-     * The current Y position of this Actor.
-     * @field
-     * @type number
-     */
-    get y() {
-      return this.matrix.f;
-    },
-    set y(pValue) {
-      this.matrix.f = pValue;
-    },
-
-    /**
-     * The current rotation of this Actor in radians.
-     * @field
-     * @type number
-     */
-    get rotation() {
-      return this._rotation;
-    },
-    set rotation(pValue) {
-      this._rotation = pValue;
-      this.matrix.rotateAxisAngle(0, 0, 0, pValue);
-    },
-
-    /**
-     * The current scale X value of this Actor.
-     * @field
-     * @type number
-     */
-    get scaleX() {
-      return this.matrix.a;
-    },
-    set scaleX(pValue) {
-      this.matrix.scale(pValue, 0);
-    },
-
-    /**
-     * The current scale Y value of this Actor.
-     * @field
-     * @type number
-     */
-    get scaleY() {
-      return this.matrix.d;
-    },
-    set scaleY(pValue) {
-      this.matrix.scale(0, pValue);
-    },
-
-    /**
      * The absolute position of this Actor on the Stage.
-     * @field
-     * @type {theatre.Matrix}
+     * @return {benri.geometry.Matrix2D}
      */
     getAbsoluteMatrix: function() {
       if (this.stage === null) {
@@ -1058,6 +993,8 @@
       return tMatrix;
     }
   };
+
+  Matrix2D.extend(Actor.prototype);
 
   Actor.prototype.constructor = Actor;
 

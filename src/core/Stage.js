@@ -28,9 +28,14 @@
    * @private
    */
   function tickCallback(pStage) {
+    if (pStage.isOpen === false) {
+      return;
+    }
+
     var tTime = Date.now();
     pStage.step();
-    if (pStage.isOpen) {
+
+    if (pStage.isOpen === true) {
       pStage.timer = setTimeout(tickCallback, pStage.stepRate - (Date.now() - tTime), pStage);
     }
   }
@@ -110,6 +115,8 @@
 
     this.motionManager = new theatre.MotionManager(this);
 
+    this.state = Stage.STATE_IDLING;
+
     var tStageManager;
 
     /**
@@ -143,20 +150,28 @@
     tStageManager.start();
   }
 
+  Stage.STATE_IDLING = 1;
+  Stage.STATE_STEPPING = 2;
+  Stage.STATE_PREPARING = 3;
+  Stage.STATE_ENTERING = 4;
+  Stage.STATE_SCHEDULING = 5;
+  Stage.STATE_UPDATING = 6;
+  Stage.STATE_SCRIPTING = 7;
+  Stage.STATE_LEAVING = 8;
 
   /**
    * @private
    * @this {theatre.Stage}
    */
   function runScheduledFunctions() {
+    this._animationFrameId = null;
+
     if (this.isOpen === false) {
       return;
     }
 
     var i, il;
     var tScheduledFunctions = this._scheduledFunctions.splice(0, this._scheduledFunctions.length);
-
-    this._animationFrameId = null;
 
     for (i = 0, il = tScheduledFunctions.length; i < il; i++) {
       tScheduledFunctions[i].call(this);
@@ -221,6 +236,9 @@
         return;
       }
       this.isOpen = true;
+
+      this.execute();
+
       this.timer = setTimeout(tickCallback, 0, this);
     },
 
@@ -233,6 +251,7 @@
       if (!this.isOpen) {
         return;
       }
+
       clearTimeout(this.timer);
       this.timer = null;
       this.isOpen = false;
@@ -255,16 +274,16 @@
     /**
      * Adds an Actor to this Stage's StageManager.
      * @param {theatre.Actor} pActor The Actor to add.
-     * @param {Object=} pOptions Options.
+     * @param {number=} pLayer The layer to add to.
      * @return {theatre.Actor} The new Actor.
      */
-    addActor: function(pActor, pOptions) {
-      return this.stageManager.addActor(pActor, pOptions);
+    addActor: function(pActor, pLayer) {
+      return this.stageManager.addActor(pActor, pLayer);
     },
 
     /**
      * Schedules a function to run in the animation frame.
-     * @param {theatre.Actor} pActor
+     * @param {function} The function to schedule.
      */
     schedule: function(pFunction) {
       this._scheduledFunctions.push(pFunction);
@@ -272,13 +291,16 @@
 
     /**
      * Schedules a script to be run.
-     * @param {Function} pScript
+     * @param {function} pScript
      */
     scheduleScript: function(pScript) {
       this._scheduledScripts.push(pScript);
     },
 
-    doScheduledScripts: function(pReverse, pHighPriorityFirst) {
+    /**
+     * @private
+     */
+    doScheduledScripts: function() {
       var tStageScripts = this._scheduledScripts;
       var tLength = tStageScripts.length;
       var tScripts;
@@ -296,45 +318,36 @@
     },
 
     /**
-     * Does a single step.
-     * Progresses the whole Stage and all active Actors
-     * forward by one step.
      * @private
-     * @todo Need to implement this correctly.
      */
-    step: function() {
-      if (this.isOpen === false) {
-        return;
-      }
-
-      this.doScheduledScripts();
-
+    execute: function() {
       // Run all prepared scripts from top down first to last.
+      this.state = Stage.STATE_PREPARING;
       this.broadcast('prepare', null, true, true);
 
       // Run all enterstep handlers from top down first to last.
+      this.state = Stage.STATE_ENTERING;
       this.broadcast('enterstep', null, false, false);
 
       var tActors = this._actors.slice(0);
       var tActor;
       var tRegisteredActors = this._registeredActors;
 
+      this.state = Stage.STATE_SCHEDULING;
+
       for (var i = tActors.length - 1; i >= 0; i--) {
         tActor = tActors[i];
 
-        if (tRegisteredActors.indexOf(tActor) === -1) {
-          if (tActor.isActing === false) {
-            tActor.cue('scheduledscripts');
-            continue;
-          }
+        if (tActor.isActing === true) {
           tActor.scheduleScripts();
-          tActor.cue('scheduledscripts');
         }
       }
 
       // Run all update handlers from bottom up last to first.
+      this.state = Stage.STATE_UPDATING;
       this.broadcast('update', null, true, true);
 
+      this.state = Stage.STATE_SCRIPTING;
       this.doScheduledScripts();
 
       if (this._animationFrameId === null && this._scheduledFunctions.length !== 0) {
@@ -346,9 +359,42 @@
       }
 
       // Run all leavestep handlers from top down first to last.
+      this.state = Stage.STATE_LEAVING;
       this.broadcast('leavestep', null, false, false);
 
       tRegisteredActors.length = 0;
+
+      this.state = Stage.STATE_IDLING;
+    },
+
+    /**
+     * Does a single step.
+     * Progresses the whole Stage and all active Actors
+     * forward by one step.
+     * @private
+     */
+    step: function() {
+      this.state = Stage.STATE_SCRIPTING;
+
+      this.doScheduledScripts();
+
+      this.state = Stage.STATE_STEPPING;
+
+      var tActors = this._actors;
+      var tActor;
+
+      // Step all Actors by 1. This might loop things.
+      // This will not execute any scripts.
+      // This only updates the states of Actors.
+      for (var i = 0, il = tActors.length; i < il; i++) {
+        tActor = tActors[i];
+
+        if (tActor.isActing === true) {
+          tActor.step(1);
+        }
+      }
+
+      this.execute();
     },
 
     /**

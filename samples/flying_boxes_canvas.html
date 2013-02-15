@@ -75,6 +75,7 @@
       var FlyingBox = (function(pSuper) {
         function FlyingBox(pWidth, pHeight, pColor) {
           pSuper.call(this, tRenderContext, pWidth, pHeight);
+
           var tStyle = new Style();
           tStyle.setColor(pColor);
           this.canvas.fillRect(new Rect(new Point(0, 0), pWidth, pHeight), tStyle);

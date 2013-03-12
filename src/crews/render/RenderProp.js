@@ -115,7 +115,7 @@
 
     for (i = 0, il = tContexts.length; i < il; i += 2) {
       // Will call processActorTree for each node.
-      this.stageManager.treeNode.processTopDownFirstToLast('RenderProp', {
+      this.getStageManager().treeNode.processTopDownFirstToLast('RenderProp', {
         context: tContexts[i],
         type: tContexts[i + 1],
         data: {}

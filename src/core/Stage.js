@@ -8,6 +8,7 @@
 (function(global) {
 
   var theatre = global.theatre;
+  var StageManager = theatre.StageManager;
 
   theatre.Stage = Stage;
 
@@ -103,6 +104,12 @@
 
     this._registeredActors = [];
 
+    /**
+     * @private
+     * @type {Object}
+     */
+    this._data = {};
+
 
     /**
      * A flag for if this Stage is currently playing or not.
@@ -117,28 +124,20 @@
 
     this.state = Stage.STATE_IDLING;
 
-    var tStageManager;
+    var tStageManager = new StageManager();
+
+    tStageManager.layer = 0;
+    tStageManager.stage = this;
+
+    this._actors.push(tStageManager);
 
     /**
      * The main StageManager that manages the whole Stage.
-     * @field
-     * @name theatre.Stage#stageManager
-     * @type theatre.StageManager
+     * @return theatre.StageManager
      */
-    Object.defineProperty(this, 'stageManager', {
-      get: function() {
-        return tStageManager;
-      },
-      set: function(pStageManager) {
-        tStageManager = pStageManager;
-        pStageManager.layer = 0;
-        pStageManager.stage = this;
-      }
-    });
-
-    this.stageManager = new theatre.StageManager();
-
-    this._actors.push(tStageManager);
+    this.getStageManager = function() {
+      return tStageManager;
+    };
 
     /**
      * The main cue manager for this Stage.
@@ -278,7 +277,7 @@
      * @return {theatre.Actor} The new Actor.
      */
     addActor: function(pActor, pLayer) {
-      return this.stageManager.addActor(pActor, pLayer);
+      return this.getStageManager().addActor(pActor, pLayer);
     },
 
     /**
@@ -395,6 +394,18 @@
       }
 
       this.execute();
+    },
+
+    setData: function(pKey, pValue) {
+      this._data[pKey] = pValue;
+    },
+
+    getData: function(pKey, pValue) {
+      return this._data[pKey];
+    },
+
+    clearData: function() {
+      this._data = {};
     },
 
     /**

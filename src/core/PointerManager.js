@@ -59,7 +59,8 @@
         stageX: pX,
         stageY: pY,
         x: pX - tPoint.x, // TODO: rotation and such
-        y: pY - tPoint.y // TODO: rotation and such
+        y: pY - tPoint.y, // TODO: rotation and such
+        isPrimary: pIsPrimary
       }, true, true, true);
     }
   };
@@ -81,7 +82,8 @@
       stageX: pX,
       stageY: pY,
       x: pX - tPoint.x, // TODO: rotation and such
-      y: pY - tPoint.y // TODO: rotation and such
+      y: pY - tPoint.y, // TODO: rotation and such
+      isPrimary: pIsPrimary
     }, true, true, true);
   };
 
@@ -102,7 +104,8 @@
       stageX: pX,
       stageY: pY,
       x: pX - tPoint.x, // TODO: rotation and such
-      y: pY - tPoint.y // TODO: rotation and such
+      y: pY - tPoint.y, // TODO: rotation and such
+      isPrimary: pIsPrimary
     }, true, true, true);
   };
 
@@ -121,7 +124,8 @@
       stageX: pX,
       stageY: pY,
       x: pX - tPoint.x, // TODO: rotation and such
-      y: pY - tPoint.y // TODO: rotation and such
+      y: pY - tPoint.y, // TODO: rotation and such
+      isPrimary: pIsPrimary
     }, true, true, true);
   };
 

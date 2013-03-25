@@ -20,14 +20,19 @@
   var CanvasRenderProp = (function(pSuper) {
     function CanvasRenderProp(pRenderContext, pWidth, pHeight) {
       pSuper.call(this, pRenderContext);
-      this.canvas = new Canvas(pWidth, pHeight);
+      this.canvas = new Canvas(pWidth || pRenderContext.width, pHeight || pRenderContext.height);
       this.renderable = new CanvasRenderable(this.canvas);
     }
 
     CanvasRenderProp.prototype = Object.create(pSuper.prototype);
     CanvasRenderProp.prototype.constructor = CanvasRenderProp;
 
+    CanvasRenderProp.prototype.draw = function(pCanvas) {
+      // Implement this.
+    };
+
     CanvasRenderProp.prototype.render = function(pData) {
+      this.draw(this.canvas);
       this.renderable.render(this.context);
     };
 

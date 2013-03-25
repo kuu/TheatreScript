@@ -73,9 +73,11 @@
 
     for (i = 0, il = tTargets.length; i < il; i++) {
       if (tTargets[i] === tTarget) {
+        pEvent.preventDefault();
+
         for (j = 0, jl = tTouches.length; j < jl; j++) {
           tTouch = tTouches[j];
-          tStages[j].pointerManager.down(
+          tStages[i].pointerManager.down(
             tTouch.identifier, // The ID of this pointer
             tTouch.clientX - tX, // Relative X
             tTouch.clientY - tY, // Relative Y
@@ -101,7 +103,7 @@
       if (tTargets[i] === tTarget) {
         for (j = 0, jl = tTouches.length; j < jl; j++) {
           tTouch = tTouches[j];
-          tStages[j].pointerManager.move(
+          tStages[i].pointerManager.move(
             tTouch.identifier, // The ID of this pointer
             tTouch.clientX - tX, // Relative X
             tTouch.clientY - tY, // Relative Y
@@ -127,7 +129,7 @@
       if (tTargets[i] === tTarget) {
         for (j = 0, jl = tTouches.length; j < jl; j++) {
           tTouch = tTouches[j];
-          tStages[j].pointerManager.up(
+          tStages[i].pointerManager.up(
             tTouch.identifier, // The ID of this pointer
             tTouch.clientX - tX, // Relative X
             tTouch.clientY - tY, // Relative Y

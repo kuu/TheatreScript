@@ -1,7 +1,7 @@
 /**
  * @author Jason Parrott
  *
- * Copyright (C) 2012 TheatreScript Project.
+ * Copyright (C) 2013 TheatreScript Project.
  * This code is licensed under the zlib license. See LICENSE for details.
  */
 
@@ -14,85 +14,269 @@
 
   theatre.crews.dom.enableKeyInput = enableKeyInput;
   theatre.crews.dom.disableKeyInput = disableKeyInput;
-  theatre.crews.dom.enableMotionInput = enableMotionInput;
-  theatre.crews.dom.disableMotionInput = disableMotionInput;
+  theatre.crews.dom.enablePointerInput = enablePointerInput;
+  theatre.crews.dom.disablePointerInput = disablePointerInput;
 
   var mKeyStages = [];
-  var mMotionStages = [];
+  var mKeyTargets = [];
 
-  var mKeyHooked = false;
-  var mMotionHooked = false;
+  var mPointerStages = [];
+  var mPointerTargets = [];
 
   function onKeyDown(pEvent) {
+    var tTarget = pEvent.currentTarget;
+    var tTargets = mKeyTargets.slice(0);
     var tStages = mKeyStages.slice(0);
-    for (var i = 0, il = tStages.length; i < il; i++) {
-      tStages[i].keyManager.down(
-        pEvent.keyCode,
-        pEvent.altKey,
-        pEvent.shiftKey,
-        pEvent.ctrlKey,
-        pEvent.metaKey,
-        pEvent.repeat
-      );
+
+    for (var i = 0, il = tTargets.length; i < il; i++) {
+      if (tTargets[i] === tTarget) {
+        tStages[i].keyManager.down(
+          pEvent.keyCode,
+          pEvent.altKey,
+          pEvent.shiftKey,
+          pEvent.ctrlKey,
+          pEvent.metaKey,
+          pEvent.repeat
+        );
+      }
     }
   }
 
   function onKeyUp(pEvent) {
+    var tTarget = pEvent.currentTarget;
+    var tTargets = mKeyTargets.slice(0);
     var tStages = mKeyStages.slice(0);
-    for (var i = 0, il = tStages.length; i < il; i++) {
-      tStages[i].keyManager.up(
-        pEvent.keyCode,
-        pEvent.altKey,
-        pEvent.shiftKey,
-        pEvent.ctrlKey,
-        pEvent.metaKey
-      );
+
+    for (var i = 0, il = tTargets.length; i < il; i++) {
+      if (tTargets[i] === tTarget) {
+        tStages[i].keyManager.up(
+          pEvent.keyCode,
+          pEvent.altKey,
+          pEvent.shiftKey,
+          pEvent.ctrlKey,
+          pEvent.metaKey
+        );
+      }
     }
   }
 
-  function enableKeyInput(pStage) {
-    if (mKeyStages.indexOf(pStage) === -1) {
-      mKeyStages.push(pStage);
-    }
+  function onTouchStart(pEvent) {
+    var tTarget = pEvent.currentTarget;
+    var tTargets = mPointerTargets.slice(0);
+    var tStages = mPointerStages.slice(0);
+    var tTouches = pEvent.changedTouches;
+    var tTouch;
+    var i, il, j, jl;
+    var tBounds = tTarget.getBoundingClientRect();
+    var tY = tBounds.top;
+    var tX = tBounds.left;
 
-    if (mKeyHooked === false) {
-      document.addEventListener('keydown', onKeyDown, false);
-      document.addEventListener('keyup', onKeyUp, false);
-      mKeyHooked = true;
+    for (i = 0, il = tTargets.length; i < il; i++) {
+      if (tTargets[i] === tTarget) {
+        for (j = 0, jl = tTouches.length; j < jl; j++) {
+          tTouch = tTouches[j];
+          tStages[j].pointerManager.down(
+            tTouch.identifier, // The ID of this pointer
+            tTouch.clientX - tX, // Relative X
+            tTouch.clientY - tY, // Relative Y
+            tTouch === pEvent.touches[0] // isPrimary
+          );
+        }
+      }
     }
   }
 
-  function disableKeyInput(pStage) {
-    var tIndex = mKeyStages.indexOf(pStage);
+  function onTouchMove(pEvent) {
+    var tTarget = pEvent.currentTarget;
+    var tTargets = mPointerTargets.slice(0);
+    var tStages = mPointerStages.slice(0);
+    var tTouches = pEvent.changedTouches;
+    var tTouch;
+    var i, il, j, jl;
+    var tBounds = tTarget.getBoundingClientRect();
+    var tY = tBounds.top;
+    var tX = tBounds.left;
+
+    for (i = 0, il = tTargets.length; i < il; i++) {
+      if (tTargets[i] === tTarget) {
+        for (j = 0, jl = tTouches.length; j < jl; j++) {
+          tTouch = tTouches[j];
+          tStages[j].pointerManager.move(
+            tTouch.identifier, // The ID of this pointer
+            tTouch.clientX - tX, // Relative X
+            tTouch.clientY - tY, // Relative Y
+            tTouch === pEvent.touches[0] // isPrimary
+          );
+        }
+      }
+    }
+  }
+
+  function onTouchEnd(pEvent) {
+    var tTarget = pEvent.currentTarget;
+    var tTargets = mPointerTargets.slice(0);
+    var tStages = mPointerStages.slice(0);
+    var tTouches = pEvent.changedTouches;
+    var tTouch;
+    var i, il, j, jl;
+    var tBounds = tTarget.getBoundingClientRect();
+    var tY = tBounds.top;
+    var tX = tBounds.left;
+
+    for (i = 0, il = tTargets.length; i < il; i++) {
+      if (tTargets[i] === tTarget) {
+        for (j = 0, jl = tTouches.length; j < jl; j++) {
+          tTouch = tTouches[j];
+          tStages[j].pointerManager.up(
+            tTouch.identifier, // The ID of this pointer
+            tTouch.clientX - tX, // Relative X
+            tTouch.clientY - tY, // Relative Y
+            tTouch === pEvent.touches[0] // isPrimary
+          );
+        }
+      }
+    }
+  }
+
+  function onMouseDown(pEvent) {
+    var tTarget = pEvent.currentTarget;
+    var tTargets = mPointerTargets.slice(0);
+    var tStages = mPointerStages.slice(0);
+    var i, il;
+    var tBounds = tTarget.getBoundingClientRect();
+    var tY = tBounds.top;
+    var tX = tBounds.left;
+
+    for (i = 0, il = tTargets.length; i < il; i++) {
+      if (tTargets[i] === tTarget) {
+        tStages[i].pointerManager.down(
+          1, // The ID of this pointer
+          pEvent.clientX - tX, // Relative X
+          pEvent.clientY - tY, // Relative Y
+          true // isPrimary
+        );
+      }
+    }
+  }
+
+  function onMouseMove(pEvent) {
+    var tTarget = pEvent.currentTarget;
+    var tTargets = mPointerTargets.slice(0);
+    var tStages = mPointerStages.slice(0);
+    var i, il;
+    var tBounds = tTarget.getBoundingClientRect();
+    var tY = tBounds.top;
+    var tX = tBounds.left;
+
+    for (i = 0, il = tTargets.length; i < il; i++) {
+      if (tTargets[i] === tTarget) {
+        tStages[i].pointerManager.move(
+          1, // The ID of this pointer
+          pEvent.clientX - tX, // Relative X
+          pEvent.clientY - tY, // Relative Y
+          true // isPrimary
+        );
+      }
+    }
+  }
+
+  function onMouseUp(pEvent) {
+    var tTarget = pEvent.currentTarget;
+    var tTargets = mPointerTargets.slice(0);
+    var tStages = mPointerStages.slice(0);
+    var i, il;
+    var tBounds = tTarget.getBoundingClientRect();
+    var tY = tBounds.top;
+    var tX = tBounds.left;
+
+    for (i = 0, il = tTargets.length; i < il; i++) {
+      if (tTargets[i] === tTarget) {
+        tStages[i].pointerManager.up(
+          1, // The ID of this pointer
+          pEvent.clientX - tX, // Relative X
+          pEvent.clientY - tY, // Relative Y
+          true // isPrimary
+        );
+      }
+    }
+  }
+
+  function listenerIndex(pStages, pTargets, pStage, pTarget) {
+    for (var i = 0, il = pStages.length; i < il; i++) {
+      if (pStages[i] === pStage && pTargets[i] === pTarget) {
+        return i;
+      }
+    }
+
+    pStages.push(pStage);
+    pTargets.push(pTarget);
+
+    return -1;
+  }
+
+  function enableKeyInput(pStage, pContainer) {
+    if (listenerIndex(mKeyStages, mKeyTargets, pStage, pContainer) !== -1) {
+      return;
+    }
+
+    pContainer.addEventListener('keydown', onKeyDown, false);
+    pContainer.addEventListener('keyup', onKeyUp, false);
+  }
+
+  function disableKeyInput(pStage, pContainer) {
+    var tIndex = listenerIndex(mKeyStages, mKeyTargets, pStage, pContainer);
+
     if (tIndex !== -1) {
       mKeyStages.splice(tIndex, 1);
-    }
+      mKeyTargets.splice(tIndex, 1);
 
-    if (mKeyHooked === true && mKeyStages.length === 0) {
-      document.removeEventListener('keydown', onKeyDown, false);
-      document.removeEventListener('keyup', onKeyUp, false);
-      mKeyHooked = false;
+      pContainer.removeEventListener('keydown', onKeyDown, false);
+      pContainer.removeEventListener('keyup', onKeyUp, false);
     }
   }
 
-  function enableMotionInput(pStage) {
-    if (mMotionStages.indexOf(pStage) === -1) {
-      mMotionStages.push(pStage);
+  function enablePointerInput(pStage, pContainer) {
+    if (listenerIndex(mPointerStages, mPointerTargets, pStage, pContainer) !== -1) {
+      return;
     }
 
-    if (mMotionHooked === false) {
-      mMotionHooked = true;
+    if (global.navigator.pointerEnabled) {
+      // for the PointerEvent spec
+
+    } else if ('ontouchstart' in document.documentElement) {
+      // for touch event browsers
+      pContainer.addEventListener('touchstart', onTouchStart, false);
+      pContainer.addEventListener('touchmove', onTouchMove, false);
+      pContainer.addEventListener('touchend', onTouchEnd, false);
+    } else {
+      // fallback to mouse
+      pContainer.addEventListener('mousedown', onMouseDown, false);
+      pContainer.addEventListener('mousemove', onMouseMove, false);
+      pContainer.addEventListener('mouseup', onMouseUp, false);
     }
   }
 
-  function disableMotionInput(pStage) {
-    var tIndex = mMotionStages.indexOf(pStage);
+  function disablePointerInput(pStage, pContainer) {
+    var tIndex = listenerIndex(mPointerStages, mPointerTargets, pStage, pContainer);
+
     if (tIndex !== -1) {
-      mMotionStages.splice(tIndex, 1);
-    }
+      mPointerStages.splice(tIndex, 1);
+      mPointerTargets.splice(tIndex, 1);
 
-    if (mMotionHooked === true && mMotionStages.length === 0) {
-      mMotionHooked = false;
+      if (global.navigator.pointerEnabled) {
+        // for the PointerEvent spec
+
+      } else if ('ontouchstart' in document.documentElement) {
+        // for touch event browsers
+        pContainer.removeEventListener('touchstart', onTouchStart, false);
+        pContainer.removeEventListener('touchmove', onTouchMove, false);
+        pContainer.removeEventListener('touchend', onTouchEnd, false);
+      } else {
+        // fallback to mouse
+        pContainer.removeEventListener('mousedown', onMouseDown, false);
+        pContainer.removeEventListener('mousemove', onMouseMove, false);
+        pContainer.removeEventListener('mouseup', onMouseUp, false);
+      }
     }
   }
 

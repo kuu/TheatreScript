@@ -120,7 +120,7 @@
 
     this.keyManager = new theatre.KeyManager(this);
 
-    this.motionManager = new theatre.MotionManager(this);
+    this.pointerManager = new theatre.PointerManager(this);
 
     this.state = Stage.STATE_IDLING;
 

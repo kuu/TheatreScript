@@ -60,7 +60,7 @@
     }, true, true);
 
     // Do event bubbling.
-    if (tActor) {
+    if (tActor && tActor.stage !== null) {
       this.activeCapturedPointerTargets[pId] = tActor;
       tMatrix = tActor.getAbsoluteMatrix();
       tPoint = tMatrix.getPoint(0, 0);
@@ -76,13 +76,15 @@
 
     // Do not event bubbling.
     tTarget = this.activePointerTargets[pId];
+    if (!tTarget) {
+      tTarget = this.activePointerTargets[pId] = [];
+    }
     for (var i = 0, il = tActors.length; i < il; i++) {
       tActor = tActors[i];
-      if (tTarget) {
-        tTarget.push(tActor);
-      } else {
-        tTarget = this.activePointerTargets[pId] = [tActor];
+      if (!tActor || tActor.stage === null) {
+        continue;
       }
+      tTarget.push(tActor);
       tMatrix = tActor.getAbsoluteMatrix();
       tPoint = tMatrix.getPoint(0, 0);
       tActor.cue('pointerdown', {
